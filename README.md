@@ -79,4 +79,20 @@ npm run test:browser
 - 碰撞僅處理建築與城市邊界，樹木、街燈為裝飾；採保守碰撞區，靠近轉角會提早停車。鏡頭尚無建築遮擋避讓。
 - 街機控制沒有懸吊、翻車、交通 AI、行人或真實城市地圖；無多人、手機觸控、棋盤或長照題庫。
 - V0.1 後續以人工完整路線試駕、轉角手感及不同硬體測試為主；不自動擴增 V0.2。
-- 專案使用相對 Vite base，可另外部署至獨立 GitHub Pages repository；目前未建立遠端或發布。
+- 專案使用相對 Vite base，支援 GitHub Pages 的 `/lohas-rush/` 子路徑；部署設定與操作見下節。
+
+## GitHub Pages 部署
+
+Repository：`wowamin/lohas-rush`。已加入 `.github/workflows/deploy.yml`，推送至 `main` 後會安裝鎖定版本套件、執行邏輯測試、建置並發布 `dist`。
+
+首次部署步驟：
+
+1. 開啟 [Settings → Pages](https://github.com/wowamin/lohas-rush/settings/pages)。
+2. 在 **Build and deployment → Source** 選擇 **GitHub Actions**。
+3. 將本次新增的 workflow 提交並推送至 `main`。
+4. 在 [Actions](https://github.com/wowamin/lohas-rush/actions) 查看 `Deploy game to GitHub Pages`。若 workflow 已存在，可使用 **Run workflow** 手動啟動。
+5. 等 `build` 與 `deploy` 都成功後，開啟 https://wowamin.github.io/lohas-rush/ 。此為預期發布網址，不代表目前已上線。
+
+Vite 網站必須發布建置後的 `dist`，不能只把原始碼當作靜態網站。請勿將 Source 設成直接發布 `main / (root)`；原始 `index.html` 引用的是需由 Vite 編譯的 TypeScript。
+
+若 `Configure Pages` 顯示找不到 Pages，先檢查第 2 步；若 `deploy` 等待核准，查看 `github-pages` environment 的保護設定。`dist` 保持在 Git 忽略規則中，由 Actions 上傳，不需手動提交。

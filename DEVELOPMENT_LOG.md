@@ -153,3 +153,31 @@ npm.cmd run test:browser
 ```
 
 瀏覽器測試需要本機已安裝 Google Chrome。更多操作與專案說明見 [README.md](README.md)。
+
+## 九、GitHub Pages 部署排查（2026-11-02）
+
+### 查到的現況
+
+- 本機遠端已設定為 `https://github.com/wowamin/lohas-rush.git`，目前分支為 `main`。
+- GitHub repository 中已存在遊戲原始碼、套件 lockfile 與開發紀錄，確認程式碼有上傳。
+- GitHub Actions API 回傳 `total_count: 0`，沒有任何 workflow 執行紀錄。
+- GitHub repository 沒有 `.github` 目錄，本機也沒有部署 workflow。
+- 公開遊戲網址 `https://wowamin.github.io/lohas-rush/` 回傳 HTTP 404。
+- 未登入的 GitHub Pages API 查詢也回傳 404；無法僅據此判定管理後台的確切 Source 設定，仍需從 Settings → Pages 確認。
+
+### 原因與本次修正
+
+專案只有原始碼上傳，缺少 Vite 建置與 GitHub Pages 發布流程。Vite 必須先產生 `dist` 再發布，直接上傳原始碼不會自動完成這些步驟。
+
+新增 `.github/workflows/deploy.yml`：使用 Node.js 24、`npm ci`、`npm test`、`npm run build`、Pages artifact 上傳與部署。推送至 `main` 或手動執行 workflow 時觸發，部署工作具 Pages 寫入及 OIDC 權限。
+
+保留 Vite 的 `base: './'`，建置資產採相對路徑，可由 `/lohas-rush/` 子路徑載入。README 已補上首次啟用 Pages、推送 workflow 與檢查 Actions 的步驟。
+
+### 驗證與尚待執行
+
+- 修正後 `npm.cmd test`：5 項通過。
+- 修正後 `npm.cmd run build`：成功產生 `dist`；仍有主程式 chunk 大小提示。
+- 本次僅準備本地部署檔案與說明，尚未提交、推送、變更 GitHub Pages 設定或觸發遠端部署。
+- 下一步：在 repository 的 Settings → Pages 將 Source 設為 GitHub Actions，再提交並推送 workflow，確認遠端 `build`／`deploy` 都通過後驗收公開網址。
+
+參考：[Vite 靜態網站與 GitHub Pages 部署說明](https://vite.dev/guide/static-deploy#github-pages)。
