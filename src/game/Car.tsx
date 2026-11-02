@@ -1,9 +1,68 @@
-import{useEffect,useRef}from'react';import{useFrame,useThree}from'@react-three/fiber';import * as THREE from'three';import{obstacles,locations}from'../data/city';import{useGame}from'../stores/game';
-const keys=new Set<string>();const up=new THREE.Vector3(0,1,0);const temp=new THREE.Vector3();
-export function Car(){const group=useRef<THREE.Group>(null);const state=useRef({x:0,z:0,angle:0,speed:0,acc:0});const {camera}=useThree();const resetKey=useGame(s=>s.resetKey);const missionIndex=useGame(s=>s.missionIndex);const completed=useGame(s=>s.completed);const setSpeed=useGame(s=>s.setSpeed);const finishMission=useGame(s=>s.finishMission);const lastUI=useRef(0);const lastMission=useRef(-1);
-useEffect(()=>{const down=(e:KeyboardEvent)=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys.add(e.code);if(e.code==='KeyR')useGame.getState().reset()};const up=(e:KeyboardEvent)=>keys.delete(e.code);window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);keys.clear()}},[]);
-useEffect(()=>{state.current={x:0,z:0,angle:0,speed:0,acc:0};lastMission.current=-1},[resetKey]);
-useFrame((_,delta)=>{const s=state.current;let dt=Math.min(delta,.05);s.acc+=dt;let count=0;while(s.acc>=1/60&&count++<5){const step=1/60;const forward=keys.has('KeyW')||keys.has('ArrowUp');const reverse=keys.has('KeyS')||keys.has('ArrowDown');const brake=keys.has('Space');const steer=(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)-(keys.has('KeyD')||keys.has('ArrowRight')?1:0);s.speed+=(forward?16:reverse?-11:0)*step;s.speed*=Math.exp(-(brake?7:1.25)*step);s.speed=THREE.MathUtils.clamp(s.speed,-9,20);if(Math.abs(s.speed)<.025)s.speed=0;s.angle+=steer*Math.sign(s.speed)*Math.min(Math.abs(s.speed)/7,1)*1.6*step;const nx=s.x+Math.sin(s.angle)*s.speed*step;const nz=s.z-Math.cos(s.angle)*s.speed*step;const collision=obstacles.some(o=>Math.abs(nx-o.x)<o.halfX+1.2&&Math.abs(nz-o.z)<o.halfZ+1.8)||Math.abs(nx)>50||Math.abs(nz)>50;if(!collision){s.x=nx;s.z=nz}else s.speed=0;s.acc-=step;}
-if(group.current){group.current.position.set(s.x,.55,s.z);group.current.rotation.y=s.angle}temp.set(s.x-Math.sin(s.angle)*12,8,s.z+Math.cos(s.angle)*12);camera.position.lerp(temp,1-Math.exp(-4*dt));camera.lookAt(s.x,1,s.z);camera.up.copy(up);
-lastUI.current+=dt;if(lastUI.current>.12){setSpeed(Math.round(Math.abs(s.speed)*3.6));lastUI.current=0}const dest=locations[missionIndex];if(!completed&&dest&&Math.hypot(s.x-dest.position[0],s.z-dest.position[2])<8&&lastMission.current!==missionIndex){lastMission.current=missionIndex;finishMission()}});
-return <group ref={group}><mesh castShadow position={[0,.7,0]}><boxGeometry args={[2.5,1.25,4.2]}/><meshStandardMaterial color="#fff7e7"/></mesh><mesh castShadow position={[0,1.5,.3]}><boxGeometry args={[2.1,1,2.2]}/><meshStandardMaterial color="#72b6a1"/></mesh>{[-1.3,1.3].flatMap(x=>[-1.25,1.25].map(z=><mesh key={x+','+z} position={[x,.15,z]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.48,.48,.28,12]}/><meshStandardMaterial color="#343c43"/></mesh>))}<mesh position={[0,.9,-2.12]}><boxGeometry args={[1.4,.4,.08]}/><meshStandardMaterial color="#f6bd78"/></mesh></group>}
+import { useEffect, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
+import { locations } from '../data/city';
+import { useGame } from '../stores/game';
+import { createVehicle, MAX_SUBSTEPS, STEP, stepVehicle } from './vehicle/drivingPhysics';
+import { useDrivingInput } from './vehicle/useDrivingInput';
+import { hasArrived } from './missions/missionSystem';
+
+export function Car() {
+  const group = useRef<THREE.Group>(null);
+  const state = useRef(createVehicle());
+  const accumulator = useRef(0);
+  const uiTimer = useRef(0);
+  const { camera } = useThree();
+  const resetKey = useGame(s => s.resetKey);
+  const keys = useDrivingInput(resetKey);
+  const cameraTarget = useRef(new THREE.Vector3());
+  const lookTarget = useRef(new THREE.Vector3(0, 1, 9));
+  const lookDesired = useRef(new THREE.Vector3());
+  useEffect(() => {
+    state.current = createVehicle(); accumulator.current = 0; uiTimer.current = 0;
+    camera.position.set(0, 9, 27); lookTarget.current.set(0, 1, 9); camera.lookAt(lookTarget.current);
+  }, [resetKey, camera]);
+  useFrame((_, delta) => {
+    const s = state.current;
+    const dt = Math.min(delta, 0.1);
+    const held = (...codes: string[]) => codes.some(code => keys.current.has(code));
+    accumulator.current = Math.min(accumulator.current + dt, STEP * MAX_SUBSTEPS);
+    let count = 0;
+    while (accumulator.current >= STEP && count++ < MAX_SUBSTEPS) {
+      stepVehicle(s, {
+        throttle: Number(held('KeyW', 'ArrowUp')) - Number(held('KeyS', 'ArrowDown')),
+        steer: Number(held('KeyA', 'ArrowLeft')) - Number(held('KeyD', 'ArrowRight')), brake: held('Space'),
+      });
+      accumulator.current -= STEP;
+      const game = useGame.getState();
+      if (!game.completed && hasArrived(s.x, s.z, game.missionIndex)) game.finishMission();
+    }
+    if (group.current) { group.current.position.set(s.x, 0.56, s.z); group.current.rotation.y = s.angle; }
+    cameraTarget.current.set(s.x + Math.sin(s.angle) * 14, 9, s.z + Math.cos(s.angle) * 14);
+    const smoothing = 1 - Math.exp(-4 * dt);
+    camera.position.lerp(cameraTarget.current, smoothing);
+    lookDesired.current.set(s.x - Math.sin(s.angle) * 3, 1.2, s.z - Math.cos(s.angle) * 3);
+    lookTarget.current.lerp(lookDesired.current, smoothing); camera.lookAt(lookTarget.current);
+    uiTimer.current += dt;
+    if (uiTimer.current >= 0.1) {
+      const game = useGame.getState(); const destination = locations[game.missionIndex];
+      game.setTelemetry(Math.round(Math.abs(s.speed) * 3.6), Math.round(Math.hypot(s.x - destination.arrival[0], s.z - destination.arrival[1])));
+      uiTimer.current = 0;
+    }
+  });
+  return <group ref={group}>
+    <mesh castShadow position={[0, 0.65, 0]}><boxGeometry args={[2.4, 1.25, 4.1]} /><meshStandardMaterial color="#fff8e8" /></mesh>
+    <mesh castShadow position={[0, 1.5, 0.2]}><boxGeometry args={[2.15, 1, 2.7]} /><meshStandardMaterial color="#fff8e8" /></mesh>
+    <mesh position={[0, 1.55, -1.16]}><boxGeometry args={[1.9, 0.64, 0.04]} /><meshStandardMaterial color="#6b9ca6" /></mesh>
+    <mesh position={[0, 1.55, 1.57]}><boxGeometry args={[1.9, 0.64, 0.04]} /><meshStandardMaterial color="#6b9ca6" /></mesh>
+    {[-1, 1].map(side => <group key={side}>
+      <mesh position={[side * 1.09, 1.53, -0.45]}><boxGeometry args={[0.04, 0.65, 1]} /><meshStandardMaterial color="#6b9ca6" /></mesh>
+      <mesh position={[side * 1.22, 0.65, 0]}><boxGeometry args={[0.04, 0.38, 3.8]} /><meshStandardMaterial color="#398878" /></mesh>
+      <mesh position={[side * 1.1, 1.55, 0.78]}><boxGeometry args={[0.06, 0.18, 0.65]} /><meshStandardMaterial color="#398878" /></mesh>
+      <mesh position={[side * 1.1, 1.55, 0.78]}><boxGeometry args={[0.06, 0.65, 0.18]} /><meshStandardMaterial color="#398878" /></mesh>
+      {[-1.25, 1.25].map(z => <mesh key={z} castShadow position={[side * 1.22, 0, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.5, 0.5, 0.25, 12]} /><meshStandardMaterial color="#34434a" /></mesh>)}
+      <mesh position={[side * 0.8, 0.7, -2.07]}><boxGeometry args={[0.42, 0.28, 0.05]} /><meshStandardMaterial color="#fff1b2" /></mesh>
+      <mesh position={[side * 0.8, 0.7, 2.07]}><boxGeometry args={[0.32, 0.25, 0.05]} /><meshStandardMaterial color="#d47669" /></mesh>
+    </group>)}
+  </group>;
+}
