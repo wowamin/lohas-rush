@@ -1,21 +1,26 @@
-export type Obstacle = { x: number; z: number; halfX: number; halfZ: number };
-export type Location = {
-  id: string; name: string; description: string;
-  position: [number, number, number]; arrival: [number, number]; radius: number; color: string;
-};
-export const CITY_LIMIT = 52;
-export const roadCoordinates = [-48, -24, 0, 24, 48];
-export const locations: Location[] = [
-  { id: 'daycare', name: '樂活日照中心', description: '前往日照中心，熟悉今日的服務路線。', position: [-12, 0, -36], arrival: [-12, -24], radius: 4, color: '#efad91' },
-  { id: 'clinic', name: '樂活全齡診所', description: '下一站，全齡診所。沿街道向東行駛。', position: [12, 0, -36], arrival: [12, -24], radius: 4, color: '#9fcbd7' },
-  { id: 'kitchen', name: '樂活團膳工廠', description: '最後一站，抵達南側的團膳工廠。', position: [36, 0, 12], arrival: [24, 12], radius: 4, color: '#c6b2dd' },
+import { locations } from './locations.ts';
+import { servicePoints, type ServicePoint } from './services.ts';
+import { landscapeObstacles } from './landscape.ts';
+import { generatedCity, shopPrefabs } from './buildingLots.ts';
+export { locations, type Location } from './locations.ts';
+export { CITY_LIMIT } from './roadNetwork.ts';
+export type Obstacle = { x: number; z: number; halfX: number; halfZ: number; kind?: string };
+export type Building = Obstacle & { id: string; name: string; height: number; color: string; location?: typeof locations[number]; service?: ServicePoint; description: string; residential?: boolean; shop?: boolean; lotId?: string; rotation?: number };
+export const buildings: Building[] = [
+  ...locations.map(location => ({ id: location.id, name: location.name, x: location.position[0], z: location.position[2], halfX: 6, halfZ: 6, height: 7, color: location.color, location, lotId: location.lotId, rotation: location.rotation, description: '日照中心幾何佔位；待提供實景照片及授權。' })),
+  ...generatedCity.shops.map(({ point, prefab }) => {
+    const shop = shopPrefabs.find(item => item.id === prefab)!;
+    return { id: `shop-${point.id}`, name: shop.name, x: point.position[0], z: point.position[2], halfX: 4.5, halfZ: 4.5,
+      height: shop.height, color: shop.color, rotation: point.rotation, lotId: point.id, shop: true, description: '虛構街坊店家，程式生成幾何示意，非真實商家。' };
+  }),
+  { id: 'headquarters', name: '樂活總部', x: -10, z: -2, halfX: 5, halfZ: 5, height: 11, color: '#a9c7b5', description: '虛構城市核心地標，非真實總部外觀。' },
+  ...servicePoints.map(service => ({ ...service, service })),
+  ...[108, 122].flatMap((x, i) => [26, 43].map((z, j) => ({ id: `home-${i}-${j}`, name: '住宅社區', x, z, halfX: 4, halfZ: 4, height: 5 + j * 2, color: i ? '#e6d9c3' : '#dfc6bc', residential: true, description: '虛構一般住宅。' }))),
 ];
-export const buildings = [-36, -12, 12, 36].flatMap(x =>
-  [-36, -12, 12, 36].map((z, index) => ({
-    x, z, halfX: 6, halfZ: 6, height: 5 + ((x + 36) / 24 + index) % 3 * 2,
-    color: ['#f2e6ca', '#cddcce', '#d8d4e6', '#edd4bf'][index],
-    location: locations.find(l => l.position[0] === x && l.position[2] === z),
-  })),
-);
-// Every rendered building, including destinations, shares this collision source.
-export const obstacles: Obstacle[] = buildings.map(({ x, z, halfX, halfZ }) => ({ x, z, halfX, halfZ }));
+export const fountain = { x: 8, z: 0, radius: 6 };
+export const obstacles: Obstacle[] = [
+  ...buildings.map(({ x, z, halfX, halfZ }) => ({ x, z, halfX, halfZ, kind: 'building' })),
+  { x: fountain.x, z: fountain.z, halfX: fountain.radius, halfZ: fountain.radius, kind: 'fountain' },
+  ...landscapeObstacles,
+  { x: 43, z: 28, halfX: 1.3, halfZ: 2.5, kind: 'meal-van' },
+];
