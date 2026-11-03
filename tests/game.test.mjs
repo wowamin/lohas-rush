@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createVehicle, interpolateVehicle, stepVehicle } from '../src/game/vehicle/drivingPhysics.ts';
+import { createVehicle, interpolateVehicle, stepVehicle, MAX_FORWARD_SPEED } from '../src/game/vehicle/drivingPhysics.ts';
 import { collides, CAR_RADIUS } from '../src/game/collision/collisionSystem.ts';
 import { hasArrived } from '../src/game/missions/missionSystem.ts';
 import { locations, obstacles, CITY_LIMIT } from '../src/data/city.ts';
@@ -273,7 +273,7 @@ test('touch reverse slows forward motion then reverses, cancels gas and clears o
 test('forward, reverse, left steering and reverse steering have correct direction', () => {
   const s = createVehicle();
   drive(s, { ...idle, throttle: 1 }, 120);
-  assert.ok(s.z < SPAWN.z && s.speed > 0 && s.speed <= 18);
+  assert.ok(s.z < SPAWN.z && s.speed > 0 && s.speed <= MAX_FORWARD_SPEED);
   const left = createVehicle();
   drive(left, { ...idle, throttle: 1, steer: 1 }, 80);
   assert.ok(left.x < 0 && left.angle > 0);
@@ -282,20 +282,33 @@ test('forward, reverse, left steering and reverse steering have correct directio
   assert.ok(reverse.z > SPAWN.z && reverse.angle < 0 && reverse.speed >= -8);
 });
 
+test('held throttle accelerates beyond 80 km/h to 120 on a continuous road', () => {
+  const state = { x: 0, z: 420, angle: 0, speed: 0 };
+  let previous = 0;
+  for (let i = 0; i < 1200; i++) {
+    stepVehicle(state, { ...idle, throttle: 1 });
+    assert.ok(state.speed >= previous && state.speed <= MAX_FORWARD_SPEED);
+    previous = state.speed;
+  }
+  assert.ok(state.speed * 3.6 > 80);
+  assert.equal(state.speed, MAX_FORWARD_SPEED);
+  assert.equal(collides(state.x, state.z), false);
+});
+
 test('braking and coasting reduce speed; throttle with brake remains slow', () => {
-  const brake = { ...createVehicle(), speed: 18 };
+  const brake = { ...createVehicle(), speed: MAX_FORWARD_SPEED };
   drive(brake, { ...idle, brake: true }, 120);
   assert.equal(brake.speed, 0);
-  const coast = { ...createVehicle(), speed: 18 };
+  const coast = { ...createVehicle(), speed: MAX_FORWARD_SPEED };
   drive(coast, idle, 120);
-  assert.ok(coast.speed < 4);
+  assert.ok(coast.speed < 7);
   drive(brake, { ...idle, throttle: 1, brake: true }, 120);
   assert.ok(brake.speed < 1.4);
 });
 
 test('top-speed approaches cannot tunnel through buildings or city limits; reverse escapes contact', () => {
   for (const o of obstacles) {
-    const s = { x: o.x, z: o.z + o.halfZ + CAR_RADIUS + 1, angle: 0, speed: 18 };
+    const s = { x: o.x, z: o.z + o.halfZ + CAR_RADIUS + 1, angle: 0, speed: MAX_FORWARD_SPEED };
     if (collides(s.x, s.z)) continue;
     drive(s, { ...idle, throttle: 1 }, 60);
     assert.ok(s.z >= o.z + o.halfZ + CAR_RADIUS);
@@ -304,7 +317,7 @@ test('top-speed approaches cannot tunnel through buildings or city limits; rever
     drive(s, { ...idle, throttle: -1 }, 60);
     assert.ok(s.z > before, 'can reverse away from contact');
   }
-  const boundary = { x: -CITY_LIMIT + 10, z: 0, angle: Math.PI / 2, speed: 18 };
+  const boundary = { x: -CITY_LIMIT + 10, z: 0, angle: Math.PI / 2, speed: MAX_FORWARD_SPEED };
   drive(boundary, { ...idle, throttle: 1 }, 3000);
   assert.ok(Math.abs(boundary.x) <= CITY_LIMIT - CAR_RADIUS);
   assert.ok(boundary.x <= -CITY_LIMIT + CAR_RADIUS + 0.2);
@@ -363,7 +376,7 @@ test('ordered mission advancement, completion idempotence and full restart', () 
 
 test('river and banks block top-speed approaches; bridge works both directions and rails stop sideways travel', () => {
   for (const z of [-105, -60, 60, 105]) {
-    const s = { x: 75, z, angle: -Math.PI / 2, speed: 18 };
+    const s = { x: 75, z, angle: -Math.PI / 2, speed: MAX_FORWARD_SPEED };
     drive(s, { ...idle, throttle: 1 }, 180);
     assert.ok(s.x < river.x - river.halfWidth - CAR_RADIUS);
     assert.equal(collides(s.x, s.z), false);
@@ -373,12 +386,12 @@ test('river and banks block top-speed approaches; bridge works both directions a
   }
   for (const z of river.bridgeCenters) for (const direction of [-1, 1]) {
     const start = direction === 1 ? 78 : 102;
-    const s = { x: start, z, angle: -direction * Math.PI / 2, speed: 18 };
+    const s = { x: start, z, angle: -direction * Math.PI / 2, speed: MAX_FORWARD_SPEED };
     drive(s, { ...idle, throttle: 1 }, 150);
     assert.ok(direction * (s.x - start) > 20, 'bridge crosses river');
     assert.equal(collides(s.x, s.z), false);
   }
-  const sideways = { x: river.x, z: 0, angle: 0, speed: 18 };
+  const sideways = { x: river.x, z: 0, angle: 0, speed: MAX_FORWARD_SPEED };
   drive(sideways, { ...idle, throttle: 1 }, 120);
   assert.ok(sideways.z > -river.bridgeHalfWidth + CAR_RADIUS);
   assert.equal(collides(sideways.x, sideways.z), false);

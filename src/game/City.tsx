@@ -1,10 +1,13 @@
 import { Html } from '@react-three/drei';
+import { useState } from 'react';
+import { StreamedAssets } from './assets/StreamedAssets';
 import { buildings, fountain, locations } from '../data/city';
 import { useGame } from '../stores/game';
 import { StaticScenery } from './StaticScenery';
 import { NavigationRoute } from './NavigationRoute';
 import { mountains } from '../data/landscape';
 export function City() {
+  const [hiddenShops, setHiddenShops] = useState<ReadonlySet<string>>(new Set());
   const mission = useGame(s => s.missionIndex);
   const completed = useGame(s => s.completed);
   const nearbyShop = useGame(s => buildings.find(b => b.shop && Math.hypot(s.x - b.x, s.z - b.z) < 23));
@@ -12,7 +15,8 @@ export function City() {
     <color attach="background" args={['#dce9e3']} /><fog attach="fog" args={['#dce9e3', 100, 250]} />
     <hemisphereLight args={['#fff9ea', '#8baf91', 2]} />
     <directionalLight position={[-30, 70, 25]} intensity={2.5} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-130} shadow-camera-right={130} shadow-camera-top={130} shadow-camera-bottom={-130} shadow-camera-far={300} shadow-normalBias={0.08} />
-    <StaticScenery />
+    <StaticScenery hiddenShops={hiddenShops} />
+    <StreamedAssets onShopsChanged={setHiddenShops} />
     <NavigationRoute />
     {mountains.map(m => <mesh key={`${m.x},${m.z}`} position={[m.x, m.height / 2, m.z]} castShadow><coneGeometry args={[m.radius, m.height, 6]} /><meshStandardMaterial color={m.color} flatShading /></mesh>)}
     <group position={[fountain.x, 0, fountain.z]}>

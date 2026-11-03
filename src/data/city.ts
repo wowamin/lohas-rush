@@ -23,4 +23,6 @@ export const obstacles: Obstacle[] = [
   { x: fountain.x, z: fountain.z, halfX: fountain.radius, halfZ: fountain.radius, kind: 'fountain' },
   ...landscapeObstacles,
   { x: 43, z: 28, halfX: 1.3, halfZ: 2.5, kind: 'meal-van' },
+  { x: 48, z: 28, halfX: .4, halfZ: .9, kind: 'parked-scooter' },
+  { x: 39, z: 28, halfX: .35, halfZ: .35, kind: 'roadside-cone' },
 ];

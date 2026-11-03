@@ -1,6 +1,8 @@
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
+import { testModelAssets } from './assets.browser.mjs';
+import { testHighSpeed } from './speed.browser.mjs';
 const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173/';
 
 const browser = await chromium.launch({
@@ -60,6 +62,7 @@ try {
   await page.waitForTimeout(300);
   await mkdir('.test-artifacts', { recursive: true });
   await page.screenshot({ path: '.test-artifacts/city-desktop.png' });
+  await testHighSpeed(page);
   assert.deepEqual(errors, [], 'no runtime errors');
   await page.locator('canvas').evaluate(canvas => canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true })));
   await page.getByRole('heading', { name: '暫時無法啟動 3D 城市' }).waitFor();
@@ -156,4 +159,5 @@ try {
   console.log('PASS: Mobile multi-touch throttle/reverse/steering/brake/cancel/blur/reset and portrait/landscape/small layouts.');
   console.log('PASS: Virtual camera C/button/touch switching, visible scene change and reset to chase.');
   console.log('Screenshot: .test-artifacts/city-desktop.png');
+  await testModelAssets(browser, baseURL);
 } finally { await browser.close(); }

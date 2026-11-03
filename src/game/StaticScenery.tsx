@@ -4,12 +4,12 @@ import { buildings } from '../data/city';
 import { roads, nodeById, CITY_LIMIT, INNER_RADIUS, OUTER_RADIUS, cityBlocks, streetJunctions } from '../data/roadNetwork';
 import { river, landscapeObstacles } from '../data/landscape';
 
-type Instance = { position: [number, number, number]; size: [number, number, number]; color: string; rotation?: number };
+type Instance = { position: [number, number, number]; size: [number, number, number]; color: string; rotation?: number; owner?: string };
 const boxes: Instance[] = [];
 const trunks: Instance[] = [];
 const leaves: Instance[] = [];
-function box(position: Instance['position'], size: Instance['size'], color: string, rotation = 0) {
-  boxes.push({ position, size, color, rotation });
+function box(position: Instance['position'], size: Instance['size'], color: string, rotation = 0, owner?: string) {
+  boxes.push({ position, size, color, rotation, owner });
 }
 box([0, -0.2, 0], [CITY_LIMIT * 2, 0.3, CITY_LIMIT * 2], '#b6cda4');
 box([river.x, -0.02, 0], [river.halfWidth * 2, 0.08, CITY_LIMIT * 2], '#8ebcc8');
@@ -45,9 +45,11 @@ for (const block of cityBlocks) {
 }
 buildings.forEach((b, index) => {
   const rotation = b.rotation ?? 0, sin = Math.sin(rotation), cos = Math.cos(rotation);
+  let owner: string | undefined;
   const add = (position: Instance['position'], size: Instance['size'], color: string) =>
-    box([b.x + position[0] * cos + position[2] * sin, position[1], b.z + position[2] * cos - position[0] * sin], size, color, rotation);
+    box([b.x + position[0] * cos + position[2] * sin, position[1], b.z + position[2] * cos - position[0] * sin], size, color, rotation, owner);
   add([0, 0.16, 0], [b.halfX * 2 + 2, 0.3, b.halfZ * 2 + 2], '#e4dfcf');
+  owner = b.shop ? b.id : undefined;
   add([0, b.height / 2 + 0.3, 0], [b.halfX * 2, b.height, b.halfZ * 2], b.color);
   add([0, b.height + 0.45, 0], [b.halfX * 2 + 0.5, 0.35, b.halfZ * 2 + 0.5], '#fcf4e2');
   for (const x of [-0.55, 0, 0.55]) {
@@ -58,6 +60,7 @@ buildings.forEach((b, index) => {
     add([0, 2.9, b.halfZ + 0.6], [b.halfX * 2 + 0.4, 0.3, 1.6], '#fff4dd');
     for (const stripe of [-1, 1]) add([stripe * 2.5, 2.9, b.halfZ + 0.6], [1.3, 0.34, 1.65], b.color);
   }
+  owner = undefined;
   const treeZ = b.z + (index % 2 ? 7 : -7);
   trunks.push({ position: [b.x - 8, 1, treeZ], size: [1, 1, 1], color: '#a08b6e' });
   leaves.push({ position: [b.x - 8, 3.3, treeZ], size: [1, 1, 1], color: index % 2 ? '#86b195' : '#a4bd88' });
@@ -65,26 +68,26 @@ buildings.forEach((b, index) => {
   add([7.5, 5.4, -7], [1.2, 0.15, 0.2], '#667b76');
   add([7.1, 5.25, -7], [0.6, 0.2, 0.5], '#fff1bc');
 });
-// Parked delivery van is only a fictional supply illustration.
-box([43, 1, 28], [2.6, 1.8, 5], '#fff4d9');
-box([43, 2.1, 27], [2.4, 0.8, 2], '#bad3d6');
-box([43, 1, 30.52], [2.4, 0.45, 0.04], '#89ac8e');
-
-function Instances({ items, shape }: { items: Instance[]; shape: 'box' | 'trunk' | 'leaf' }) {
+const emptyShops: ReadonlySet<string> = new Set();
+function Instances({ items, shape, hiddenShops = emptyShops }: { items: Instance[]; shape: 'box' | 'trunk' | 'leaf'; hiddenShops?: ReadonlySet<string> }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     const object = new THREE.Object3D();
     const color = new THREE.Color();
-    items.forEach((item, index) => {
+    let index = 0;
+    items.forEach(item => {
+      if (item.owner && hiddenShops.has(item.owner)) return;
       object.position.set(...item.position); object.scale.set(...item.size); object.rotation.set(0, item.rotation ?? 0, 0); object.updateMatrix();
       mesh.current!.setMatrixAt(index, object.matrix);
       mesh.current!.setColorAt(index, color.set(item.color));
+      index++;
     });
+    mesh.current.count = index;
     mesh.current.instanceMatrix.needsUpdate = true;
     if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
     mesh.current.computeBoundingSphere();
-  }, [items]);
+  }, [items, hiddenShops]);
   return <instancedMesh ref={mesh} args={[undefined, undefined, items.length]} castShadow receiveShadow>
     {shape === 'box' ? <boxGeometry /> : shape === 'trunk' ? <cylinderGeometry args={[0.25, 0.35, 2, 6]} /> : <icosahedronGeometry args={[1.8, 0]} />}
     <meshStandardMaterial roughness={0.9} />
@@ -92,8 +95,8 @@ function Instances({ items, shape }: { items: Instance[]; shape: 'box' | 'trunk'
 }
 
 // Static city geometry uses three batches instead of a draw call for each object.
-export const StaticScenery = memo(function StaticScenery() {
-  return <><Instances items={boxes} shape="box" /><Instances items={trunks} shape="trunk" /><Instances items={leaves} shape="leaf" />
+export const StaticScenery = memo(function StaticScenery({ hiddenShops }: { hiddenShops: ReadonlySet<string> }) {
+  return <><Instances items={boxes} shape="box" hiddenShops={hiddenShops} /><Instances items={trunks} shape="trunk" /><Instances items={leaves} shape="leaf" />
     {[INNER_RADIUS, OUTER_RADIUS].map(radius => <group key={radius}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} receiveShadow><ringGeometry args={[radius - 10, radius + 10, 80]} /><meshStandardMaterial color="#e4dfcf" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.11, 0]} receiveShadow><ringGeometry args={[radius - 8, radius + 8, 80]} /><meshStandardMaterial color="#7f9292" /></mesh>

@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --test --test-isolation=none tests/game.test.mjs",
+    "test": "node --test --test-isolation=none tests/game.test.mjs tests/assets.test.mjs",
     "test:browser": "node tests/browser.mjs",
     "test:routes": "node tests/routes.browser.mjs"
   },
