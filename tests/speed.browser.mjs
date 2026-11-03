@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { expect } from '@playwright/test';
 
 export async function testHighSpeed(page) {
   await page.keyboard.press('r'); await page.waitForTimeout(250);
@@ -32,7 +33,9 @@ export async function testHighSpeed(page) {
     } finally { for (const code of held) key(code, false); }
   });
   assert.ok(result.peak > 85, `keyboard driving exceeds 80 km/h: ${JSON.stringify(result)}`);
-  await page.keyboard.down('Space'); await page.waitForTimeout(1300); await page.keyboard.up('Space');
+  await page.keyboard.down('Space');
+  await expect.poll(async () => Number(await page.locator('.speed-panel strong').innerText()), { timeout: 15000 }).toBe(0);
+  await page.keyboard.up('Space');
   assert.equal(Number(await page.locator('.speed-panel strong').innerText()), 0, 'brakes stop high-speed vehicle');
   await page.keyboard.press('r');
   console.log(`PASS: Actual keyboard road driving reached ${result.peak} km/h; high-speed braking/reset.`);

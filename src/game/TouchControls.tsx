@@ -11,6 +11,7 @@ const controls: { action: TouchAction; label: string; symbol: string }[] = [
 ];
 
 export function TouchControls() {
+  const outside=useGame(s=>s.transferPhase==='outside');
   const resetKey = useGame(s => s.resetKey);
   const [pressed, setPressed] = useState<Record<number, TouchAction>>({});
   useEffect(() => {
@@ -28,7 +29,7 @@ export function TouchControls() {
       document.removeEventListener('visibilitychange', visibility);
       query.removeEventListener('change', modeChanged);
     };
-  }, [resetKey]);
+  }, [resetKey,outside]);
 
   const release = (pointerId: number) => {
     touchController.release(pointerId);
@@ -36,11 +37,11 @@ export function TouchControls() {
       const next = { ...previous }; delete next[pointerId]; return next;
     });
   };
-  return <section className="touch-controls" aria-label="觸控駕駛">
-    <p>按住油門前進・倒車後退・左右轉向</p>
+  return <section className="touch-controls" aria-label={outside ? '輪椅操作' : '觸控駕駛'}>
+    <p>{outside ? '奶奶輪椅：前進／後退・左右轉向・停下' : '按住油門前進・倒車後退・左右轉向'}</p>
     <div className="touch-buttons">{controls.map(({ action, label, symbol }, index) =>
       <button key={action} type="button" className={`touch-button touch-${action}`}
-        aria-label={label} aria-pressed={Object.values(pressed).includes(action)}
+        aria-label={outside ? action==='gas' ? '前進' : action==='reverse' ? '後退' : action==='brake' ? '停下' : label : label} aria-pressed={Object.values(pressed).includes(action)}
         onContextMenu={event => event.preventDefault()}
         onPointerDown={event => {
           if (event.button !== 0) return;
@@ -63,7 +64,7 @@ export function TouchControls() {
           if (event.code === 'Space' || event.code === 'Enter') { event.preventDefault(); release(-index - 1); }
         }}
         onBlur={() => release(-index - 1)}
-      ><span aria-hidden="true">{symbol}</span>{index < 2 && <small>{label}</small>}</button>
+      ><span aria-hidden="true">{outside ? action==='gas' ? '前進' : action==='reverse' ? '後退' : action==='brake' ? '停下' : symbol : symbol}</span>{index < 2 && <small>{label}</small>}</button>
     )}</div>
   </section>;
 }

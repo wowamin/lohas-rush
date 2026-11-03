@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { Component, useEffect, useState, type ReactNode } from 'react';
 import { City } from './game/City';
 import { Car } from './game/Car';
+import { PassengerControls } from './game/PassengerControls';
 import { TouchControls } from './game/TouchControls';
 import { RouteMap } from './game/RouteMap';
 import { SPAWN } from './data/roadNetwork';
@@ -22,14 +23,22 @@ class GraphicsBoundary extends Component<{ children: ReactNode }, { failed: bool
   render() { return this.state.failed ? <GraphicsFallback /> : this.props.children; }
 }
 
+function CameraSwitch() {
+  const mode = useGame(s => s.cameraMode), cycle = useGame(s => s.cycleCamera);
+  const servicing = useGame(s => s.transferPhase !== 'stowed');
+  const outside=useGame(s=>s.transferPhase==='outside');
+  const label = outside ? '輪椅跟隨' : servicing ? '接送視角' : selectVirtualCamera(mode).label;
+  return <button type="button" className="camera-switch" disabled={servicing} onClick={event => { cycle(); if (event.detail > 0) event.currentTarget.blur(); }} aria-label={outside ? '奶奶輪椅跟隨鏡頭' : servicing ? '接送視角，收妥後可切換鏡頭' : `切換鏡頭，目前為${label}`} title={outside ? '輪椅模式自動跟隨' : servicing ? '接送完成後可切換' : '切換跟車／高視角（C）'}>鏡頭：{label}</button>;
+}
+
 function HUD() {
   const [missionCollapsed, setMissionCollapsed] = useState(false);
   const speed = useGame(s => s.speed);
+  const outside=useGame(s=>s.transferPhase==='outside');
   const distance = useGame(s => s.distance);
   const mission = useGame(s => s.missionIndex);
   const completed = useGame(s => s.completed);
   const reset = useGame(s => s.reset);
-  const cameraMode = useGame(s => s.cameraMode), cycleCamera = useGame(s => s.cycleCamera);
   const nearbyService = useGame(s => servicePoints.find(service => Math.hypot(s.x - service.arrival[0], s.z - service.arrival[1]) <= 8));
   return <>
     <header><a className="brand" href="./"><span className="brand-mark">樂</span><div><h1>樂活狂飆</h1><small>LOHAS RUSH</small></div></a><div className="city-tag"><i /> 樂活虛構城市 <span>V1</span></div></header>
@@ -48,9 +57,10 @@ function HUD() {
       </div>
     </aside>
     <div className="drive-caption"><span>EXPLORE AT YOUR OWN PACE</span><p>慢一點，也是一種樂活。</p></div>
-    <section className="speed-panel" aria-label={`車速 ${speed} 公里每小時`}><span className="eyebrow">SERVICE VAN · 01</span><div><strong>{String(speed).padStart(2, '0')}</strong><span>km/h</span></div><div className="speed-track"><i style={{ width: `${Math.min(speed / 65 * 100, 100)}%` }} /></div><small>{completed ? '自由探索中' : '樂活服務車 · 行程進行中'}</small><button type="button" className="camera-switch" onClick={event => { cycleCamera(); if (event.detail > 0) event.currentTarget.blur(); }} aria-label={`切換鏡頭，目前為${selectVirtualCamera(cameraMode).label}`} title="切換跟車／高視角（C）">鏡頭：{selectVirtualCamera(cameraMode).label}</button></section>
-    <footer><span className="keyboard-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 方向鍵 <span>駕駛</span></span><span><kbd>Space</kbd> 煞車</span><span><kbd>C</kbd> 切換鏡頭</span><span><kbd>R</kbd> 重置車輛與行程</span><span className="footer-note">單人 · 鍵盤／觸控操作</span></footer>
+    <section className="speed-panel" aria-label={`${outside?'輪椅速度':'車速'} ${speed} 公里每小時`}><span className="eyebrow">{outside?'WHEELCHAIR · 奶奶':'SERVICE VAN · 01'}</span><div><strong>{String(speed).padStart(2, '0')}</strong><span>km/h</span></div><div className="speed-track"><i style={{ width: `${Math.min(speed / (outside?6.5:120) * 100, 100)}%` }} /></div><small>{outside?'輪椅探索・巴士停駐':completed ? '自由探索中' : '樂活服務車 · 行程進行中'}</small><CameraSwitch /></section>
+    <footer><span className="keyboard-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 方向鍵 <span>{outside?'輪椅移動':'駕駛'}</span></span><span><kbd>Space</kbd> {outside?'停下':'煞車'}</span><span><kbd>C</kbd> 切換鏡頭</span><span><kbd>R</kbd> 重置車輛與行程</span><span className="mouse-look-hint">右鍵拖曳：環繞視角・滾輪縮放</span><span className="footer-note">單人 · 鍵盤／觸控操作</span></footer>
     <TouchControls />
+    <PassengerControls />
     <RouteMap />
   </>;
 }

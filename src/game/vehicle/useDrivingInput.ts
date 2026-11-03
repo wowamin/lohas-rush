@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useGame } from '../../stores/game';
-const controlled = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyC'];
+const controlled = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyC', 'KeyE'];
 export function useDrivingInput(resetKey: number) {
   const keys = useRef(new Set<string>());
   useEffect(() => { keys.current.clear(); }, [resetKey]);
@@ -15,7 +15,8 @@ export function useDrivingInput(resetKey: number) {
       if (controlled.includes(event.code)) event.preventDefault();
       keys.current.add(event.code);
       if (event.code === 'KeyR' && !event.repeat) { clear(); useGame.getState().reset(); }
-      if (event.code === 'KeyC' && !event.repeat) useGame.getState().cycleCamera();
+      if (event.code === 'KeyC' && !event.repeat && useGame.getState().transferPhase === 'stowed') useGame.getState().cycleCamera();
+      if (event.code === 'KeyE' && !event.repeat) useGame.getState().requestTransfer();
     };
     const up = (event: KeyboardEvent) => { keys.current.delete(event.code); };
     const visibility = () => { if (document.hidden) clear(); };

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { testModelAssets } from './assets.browser.mjs';
 import { testHighSpeed } from './speed.browser.mjs';
+import { testServiceVan } from './service-van.browser.mjs';
 const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173/';
 
 const browser = await chromium.launch({
@@ -160,4 +161,5 @@ try {
   console.log('PASS: Virtual camera C/button/touch switching, visible scene change and reset to chase.');
   console.log('Screenshot: .test-artifacts/city-desktop.png');
   await testModelAssets(browser, baseURL);
+  await testServiceVan(browser, baseURL);
 } finally { await browser.close(); }

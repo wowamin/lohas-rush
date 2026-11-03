@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Vector3,Box3 } from 'three';
+import { driverPose,DRIVER_OPERATOR } from '../src/game/vehicle/driverAssistance.ts';
+import { createDriverModel,poseDriver } from '../src/game/vehicle/driverModel.ts';
+import { PassengerTransfer,transferAreaClear,transferDurations } from '../src/game/vehicle/passengerTransfer.ts';
+import { wheelchairCollides } from '../src/game/vehicle/wheelchairController.ts';
+import { createVehicle,STEP } from '../src/game/vehicle/drivingPhysics.ts';
+import { createServiceVanFallback } from '../src/game/vehicle/serviceVan.ts';
+import { disposeModels } from '../src/game/assets/GameAssets.ts';
+
+test('driver reaches controls before hatch opens, operates lift while occupied and returns before driving unlocks',()=>{
+  const machine=new PassengerTransfer();machine.request(createVehicle());
+  let outside=false,returned=false;
+  for(let i=0;i<5000;i++){
+    const pose=machine.pose,driver=driverPose(machine.phase,machine.progress);
+    if(machine.phase==='driverExit'||machine.phase==='driverWalk') {assert.equal(pose.hatch,0);assert.equal(pose.grandmaInside,true);assert.equal(machine.locked,true);}
+    if(['opening','deploying','lowering','raising','folding','closing'].includes(machine.phase)){
+      assert.equal(driver.operate,1);assert.equal(driver.x,DRIVER_OPERATOR.x);assert.equal(driver.z,DRIVER_OPERATOR.z);
+    }
+    if(machine.phase==='outside'&&!outside){outside=true;assert.equal(driver.seated,0);machine.request(createVehicle());}
+    if(machine.phase==='driverReturn'||machine.phase==='driverEnter'){returned=true;assert.equal(pose.hatch,0);assert.equal(pose.fold,1);assert.equal(machine.locked,true);}
+    machine.step(STEP);
+    if(outside&&machine.phase==='stowed')break;
+  }
+  assert.ok(outside&&returned);assert.equal(machine.phase,'stowed');assert.equal(driverPose('stowed').seated,1);
+});
+
+test('driver paths and driver door are continuous and stay outside the van during the walk',()=>{
+  const transitions=[['stowed','driverExit'],['driverExit','driverWalk'],['driverWalk','opening'],['closing','driverReturn'],['driverReturn','driverEnter'],['driverEnter','stowed']];
+  for(const [from,to]of transitions){
+    const a=driverPose(from,1),b=driverPose(to,0);
+    for(const field of ['x','y','z','seated','door'])assert.ok(Math.abs(a[field]-b[field])<1e-8,`${from}->${to} ${field}`);
+    assert.ok(Math.abs(Math.atan2(Math.sin(a.yaw-b.yaw),Math.cos(a.yaw-b.yaw)))<1e-8,`${from}->${to} orientation`);
+  }
+  for(const phase of ['driverWalk','driverReturn'])for(let i=0;i<=100;i++){
+    const pose=driverPose(phase,i/100);
+    assert.ok(pose.x<=-1.3);assert.ok(pose.z<=2.6+.00001);assert.equal(pose.y,.14);
+  }
+});
+
+test('driver model has visible uniform/cap and animated limbs, fits cabin while seated and blocks wheelchair when waiting',()=>{
+  const model=createDriverModel();
+  poseDriver(model,driverPose('stowed'),0);model.root.updateMatrixWorld(true);
+  const seated=new Box3().setFromObject(model.root);assert.ok(seated.max.y+.75<2.3);
+  const handBefore=model.elbows[1].rotation.x;
+  poseDriver(model,driverPose('lowering',.5),.3);assert.notEqual(model.elbows[1].rotation.x,handBefore);
+  poseDriver(model,driverPose('outside'),0);model.root.updateMatrixWorld(true);
+  const point=new Vector3();model.root.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    const positions=mesh.geometry.getAttribute('position');
+    for(let i=0;i<positions.count;i++){point.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld);assert.ok(Math.hypot(point.x,point.z)<=DRIVER_OPERATOR.radius);}
+  });
+  assert.equal(wheelchairCollides(DRIVER_OPERATOR.x,DRIVER_OPERATOR.z,{x:0,z:0,angle:0},[],100),true);
+  const van=createServiceVanFallback();assert.ok(van.getObjectByName('driverDoor'));
+  disposeModels([model.root,van]);
+});
+
+test('driver route refuses a blocked side and reset clears every added driver phase',()=>{
+  assert.equal(transferAreaClear({x:0,z:0,angle:0},[{x:-1.85,z:.5,halfX:.05,halfZ:.05}],100),false);
+  assert.equal(transferAreaClear({x:0,z:0,angle:0},[],100),true);
+  for(const phase of Object.keys(transferDurations)){
+    const machine=new PassengerTransfer();machine.phase=phase;machine.elapsed=.4;machine.reset();
+    assert.equal(machine.phase,'stowed');assert.deepEqual(driverPose(machine.phase,machine.progress),driverPose('stowed'));
+  }
+});

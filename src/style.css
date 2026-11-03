@@ -47,3 +47,9 @@
   .speed-panel{top:calc(65px + env(safe-area-inset-top))}
   .touch-controls p{display:none}.touch-button{min-height:60px}
 }
+.passenger-panel{position:absolute;z-index:24;bottom:76px;left:50%;transform:translateX(-50%);width:350px;max-width:calc(100% - 28px);display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:#fffdf1f0;border:1px solid #fff;box-shadow:0 4px 20px #304b3d18}.passenger-status{flex:1;min-width:0}.passenger-status strong{display:block;font-size:12px}.passenger-status small{display:block;font-size:10px;color:#7d8d77;margin-top:4px}.transfer-button{min-height:44px;background:#386d58;color:#fff8e2;white-space:nowrap;touch-action:manipulation}.transfer-button:disabled{opacity:.5;cursor:default}
+@media(any-pointer:coarse),(max-width:850px){.passenger-panel{bottom:calc(112px + env(safe-area-inset-bottom));padding:9px 11px;gap:8px}.passenger-status strong{font-size:11px}.passenger-status small{font-size:9px}}
+@media(max-height:450px){.passenger-panel{bottom:calc(88px + env(safe-area-inset-bottom));width:315px;padding:6px 10px}.transfer-button{min-height:38px}}
+.transfer-button:hover:not(:disabled){background:#2f5e4c;color:#fff8e2}
+
+canvas.is-orbiting{cursor:grabbing}@media(any-pointer:coarse){.mouse-look-hint{display:none}}

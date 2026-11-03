@@ -63,3 +63,66 @@ test('four pooled 2D chunks handle reversal, jumps, loaded-shop replacement and 
   assert.deepEqual(track.chunks.map(group => group.children), before, 'no rebuild within same neighborhood');
   track.dispose(); track.dispose(); assert.equal(scene.children.length, 0); assets.dispose();
 });
+
+test('5000 neighborhood changes reuse the same bounded model instances without new loads or clones', async () => {
+  let requests = 0, sharedDisposed = 0;
+  const assets = new GameAssets({ load: async () => {
+    requests++; const mesh = cube(); mesh.geometry.addEventListener('dispose', () => sharedDisposed++); return mesh;
+  } });
+  await assets.loadGameAssets();
+  const created = [], create = assets.create.bind(assets);
+  assets.create = (...args) => { const model = create(...args); created.push(model); return model; };
+  const placements = [];
+  for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) for (let i = 0; i < 3; i++) {
+    placements.push({ id: `${x},${z},${i}`, shopId: `${x},${z},${i}`, asset: 'shophouse',
+      x: x*40+8+i*8, z: z*40+10, rotation: (i-1)*Math.PI/2,
+      size: { width: 9, height: 5+i, depth: 9 } });
+  }
+  const scene = new Group(), track = new TrackManager(scene, assets, placements);
+  track.init(); const warmCount = created.length, reserved = new Set(created);
+  assert.equal(warmCount, track.poolStats.capacity);
+  for (let i = 0; i < 5000; i++) {
+    track.update(((i*3)%11-5)*40, ((i*7)%11-5)*40);
+    assert.equal(scene.children.length, 4);
+    for (const group of track.chunks) for (const model of group.children) {
+      assert.ok(reserved.has(model), 'moves preserve model identity');
+      const source = placements.find(item => item.id === model.name);
+      assert.ok(source); assert.deepEqual(model.position.toArray(), [source.x,.1,source.z]);
+      assert.equal(model.rotation.y, source.rotation); assert.equal(model.userData.shopId, source.shopId);
+    }
+    assert.equal(track.poolStats.resident, warmCount);
+  }
+  for (let i = 0; i < 20; i++) track.refreshAssets();
+  assert.equal(created.length, warmCount, 'refreshing unchanged templates does not allocate');
+  assert.equal(requests, 4, 'world traversal never downloads models again');
+  assert.equal(sharedDisposed, 0); track.dispose(); assert.equal(track.poolStats.resident, 0);
+  assert.equal(sharedDisposed, 0, 'pool does not dispose cached geometry');
+  assets.dispose(); assert.equal(sharedDisposed, 4);
+});
+
+test('pool replaces obsolete fallback instances once after preload, including reset and reverse revisits', async () => {
+  const assets = new GameAssets({ load: async () => cube() }), scene = new Group();
+  const track = new TrackManager(scene, assets, [
+    { id: 'near', asset: 'blueTruck', x: 25, z: 25 }, { id: 'far', asset: 'blueTruck', x: -85, z: -85 },
+  ]);
+  track.init(); const old = track.chunks.flatMap(group => group.children)[0];
+  assert.equal(old.userData.modelState, 'idle');
+  await assets.loadGameAssets(); track.refreshAssets();
+  const ready = track.chunks.flatMap(group => group.children)[0];
+  assert.notEqual(ready, old); assert.equal(ready.userData.modelState, 'ready');
+  const count = track.poolStats.created;
+  for (let i = 0; i < 100; i++) { track.update(-85,-85); track.update(0,0); track.refreshAssets(); }
+  assert.equal(track.poolStats.created, count);
+  assert.equal(track.poolStats.resident, track.poolStats.capacity);
+  track.dispose(); assets.dispose();
+});
+
+test('missing shop models retain base-city geometry without allocating substitute shop clones', async () => {
+  const assets = new GameAssets({ load: async () => { throw new Error('404'); } });
+  await assets.loadGameAssets();
+  let hidden;
+  const track = new TrackManager(new Group(), assets, [{ id:'shop', shopId:'shop', asset:'shophouse', x:0, z:0 }], ids => { hidden = ids; });
+  track.init();
+  assert.equal(track.poolStats.resident, 0); assert.equal(hidden.size, 0);
+  track.dispose(); track.update(0,0); track.refreshAssets(); assert.equal(track.poolStats.resident, 0); assets.dispose();
+});
