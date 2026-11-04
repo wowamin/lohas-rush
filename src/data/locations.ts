@@ -7,7 +7,7 @@ export type Location = {
   lotId: string; rotation: number; district: string;
   reference: { status: 'missing'; photo: null; required: string[]; unverified: string[] };
 };
-const names = ['大和', '安南', '龍山', '義合', '新營'];
+const names = ['永春大和', '樂活安南', '七股龍山', '七股義合', '樂活新營'];
 const colors = ['#efad91', '#9fcbd7', '#c6b2dd', '#e6c981', '#a9c7a4'];
 export const locations: Location[] = names.map((shortName, index) => {
   const { point, prefab } = generatedCity.centers[index];

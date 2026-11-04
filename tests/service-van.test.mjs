@@ -27,6 +27,25 @@ test('actual Blender GLB matches fallback ground/orientation and fully fits coll
   assert.ok(scene.getObjectByName('van-glass')); assert.ok(scene.getObjectByName('van-tire'));
   assert.ok(scene.getObjectByName('van-blue')); assert.ok(scene.getObjectByName('van-pink'));
   assert.ok(scene.getObjectByName('passengerDoor'));assert.ok(fallback.getObjectByName('passengerDoor'));
+  // Both front seats must have a real backrest surface above their cushions.
+  for (const model of [scene,fallback]) {
+    model.updateMatrixWorld(true);
+    const ray=new Raycaster();
+    for(const x of [-1.215,1.215]){
+      ray.set(new Vector3(x,1.76,-.8),new Vector3(0,0,-1));
+      const rear=ray.intersectObject(model,true)[0];
+      assert.ok(rear?.object.name.endsWith('-mirror'),'mirror surface is visible from the rear');
+      assert.ok(rear.face.normal.clone().transformDirection(rear.object.matrixWorld).z>.99,'mirror faces rearward (+Z)');
+      assert.equal(rear.object.material.transparent,false,'mirror remains opaque');
+      ray.set(new Vector3(x,1.76,-1.8),new Vector3(0,0,1));
+      assert.ok(ray.intersectObject(model,true)[0]?.object.name.endsWith('-white'),'white housing is visible from the front');
+    }
+    for(const x of [-.55,.55])for(const y of [1.10,1.35,1.60]){
+      ray.set(new Vector3(x,y,-1.35),new Vector3(0,0,1));
+      const hit=ray.intersectObject(model,true)[0];
+      assert.ok(hit && hit.point.z>-.85 && hit.point.z<-.60,'front seat has padded backrest behind its occupant');
+    }
+  }
   disposeModels([scene, fallback]);
 });
 

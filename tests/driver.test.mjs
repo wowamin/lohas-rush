@@ -8,6 +8,29 @@ import { wheelchairCollides } from '../src/game/vehicle/wheelchairController.ts'
 import { createVehicle,STEP } from '../src/game/vehicle/drivingPhysics.ts';
 import { createServiceVanFallback } from '../src/game/vehicle/serviceVan.ts';
 import { disposeModels } from '../src/game/assets/GameAssets.ts';
+import {createCaregiverModel,poseCaregiver} from '../src/game/vehicle/caregiverModel.ts';
+import {caregiverPose} from '../src/game/vehicle/caregiverPose.ts';
+
+test('both front occupants clear the fixed seat backs throughout entry and exit',()=>{
+  const driver=createDriverModel(),caregiver=createCaregiverModel(),point=new Vector3();
+  const backs=[-.55,.55].map(x=>new Box3(new Vector3(x-.239,.981,-.789),new Vector3(x+.239,1.679,-.616)));
+  try{
+    for(const phase of ['driverExit','driverEnter'])for(let step=0;step<=40;step++)for(const stride of [0,Math.PI/2]){
+      const progress=step/40,pose=driverPose(phase,progress),helper=caregiverPose(phase,progress,{x:0,z:4.5,yaw:Math.PI});
+      poseDriver(driver,pose,stride/10);poseCaregiver(caregiver,stride,helper.walking,helper.grip,helper.seated);
+      for(const [model,position]of [[driver,pose],[caregiver,helper]]){
+        model.root.position.set(position.x,position.y,position.z);model.root.rotation.y=position.yaw;model.root.updateMatrixWorld(true);
+        model.root.traverse(mesh=>{
+          if(!mesh.isMesh)return;const vertices=mesh.geometry.getAttribute('position');
+          for(let i=0;i<vertices.count;i++){
+            point.fromBufferAttribute(vertices,i).applyMatrix4(mesh.matrixWorld);
+            if(backs.some(back=>back.containsPoint(point)))assert.fail(`${model.root.name} intersects seat back at ${phase} ${progress}: ${point.toArray()}`);
+          }
+        });
+      }
+    }
+  }finally{disposeModels([driver.root,caregiver.root]);}
+});
 
 test('driver reaches controls before hatch opens, operates lift while occupied and returns before driving unlocks',()=>{
   const machine=new PassengerTransfer();machine.request(createVehicle());

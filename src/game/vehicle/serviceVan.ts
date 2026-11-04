@@ -36,12 +36,13 @@ export function prepareServiceVan(model: THREE.Object3D) {
 // Generated from the same Blender-authored triangles as the GLB; no network dependency.
 export function createServiceVanFallback() {
   const root = new THREE.Group(); root.name = 'lohas-service-van-fallback';
-  const fill = (target: THREE.Group, batches: typeof geometry.batches, prefix: string) => { for (const [name, batch] of Object.entries(batches)) {
+  const fill = (target: THREE.Group, batches: Record<string, { color: string; positions: number[] }>, prefix: string) => { for (const [name, batch] of Object.entries(batches)) {
     if (!batch.positions.length) continue;
     const shape = new THREE.BufferGeometry();
     shape.setAttribute('position', new THREE.Float32BufferAttribute(batch.positions, 3));
     shape.computeVertexNormals();
-    const material = new THREE.MeshStandardMaterial({ color: batch.color, roughness: ['glass', 'windshield', 'hub'].includes(name) ? .38 : .76, side: THREE.DoubleSide });
+    const material = new THREE.MeshStandardMaterial({ color: batch.color, roughness: name === 'mirror' ? .12 : ['glass', 'windshield', 'hub'].includes(name) ? .38 : .76,
+      metalness: name === 'mirror' ? .75 : 0, side: name === 'mirror' ? THREE.FrontSide : THREE.DoubleSide });
     const mesh = new THREE.Mesh(shape, material); mesh.name = `${prefix}${name}`; target.add(mesh);
   } };
   fill(root,geometry.batches,'van-');

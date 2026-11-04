@@ -10,6 +10,10 @@ try {
   page.on('console', message => { if (message.text().startsWith('ROUTE:')) console.log(message.text()); });
   await page.goto(baseURL);
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
+  const expected = await page.evaluate(async () => {
+    const { locations } = await import('/src/data/locations.ts');
+    return { names: locations.map(location => location.shortName), first: locations[0].name };
+  });
   const outcome = await page.evaluate(async () => {
     // Read the same low-frequency telemetry used by the map; drive through real input events.
     // Do not teleport, change vehicle state, or call the mission advancement action.
@@ -58,12 +62,12 @@ try {
     } finally { for (const code of held) window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); }
   });
   assert.equal(outcome.completed, true, JSON.stringify(outcome));
-  assert.deepEqual(outcome.visited, ['大和', '安南', '龍山', '義合', '新營']);
+  assert.deepEqual(outcome.visited, expected.names);
   await expect(page.locator('.mission-summary strong')).toHaveText('旅程完成');
   await mkdir('.test-artifacts', { recursive: true });
   await page.screenshot({ path: '.test-artifacts/five-centers-completed.png' });
   await page.keyboard.press('r');
-  await expect(page.locator('.mission-summary strong')).toHaveText('大和日照中心');
+  await expect(page.locator('.mission-summary strong')).toHaveText(expected.first);
   await expect(page.locator('.route-stop.visited')).toHaveCount(0);
   await page.waitForTimeout(250);
   // Drive into the fountain's collision boundary, then reverse away through actual keys.

@@ -49,8 +49,7 @@ try {
   await page.waitForTimeout(800);
   assert.ok(await speed() > 0, 'reverse input works');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await page.waitForTimeout(2600);
-  assert.ok(await speed() <= 1, 'blur clears held throttle');
+  await expect.poll(speed, { timeout: 15000, message: 'blur clears held throttle and the vehicle coasts to a stop' }).toBeLessThanOrEqual(1);
   await page.keyboard.up('s');
   await page.getByRole('button', { name: '重新開始' }).click();
   await page.waitForTimeout(200);

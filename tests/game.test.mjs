@@ -252,6 +252,23 @@ test('touch supports multiple fingers, left priority, independent release and fu
   touch.clear(); touch.update(1);
   assert.deepEqual([touch.InputSteer, touch.InputThrottle, touch.InputBrake], [0, 0, 0]);
 });
+
+test('virtual joystick steers proportionally, self-centers on release and clears with other touch input', () => {
+  const touch = new TouchController();
+  touch.setSteering(1, 0.4); touch.press(2, 'gas');
+  touch.update(0.08);
+  assert.equal(touch.InputSteer, 0.4);
+  assert.equal(touch.InputThrottle, 1);
+  touch.setSteering(1, -0.8); touch.update(0.1);
+  assert.ok(Math.abs(touch.InputSteer + 0.1) < 1e-10);
+  touch.release(1); touch.update(0.1);
+  assert.equal(touch.InputSteer, 0);
+  assert.equal(touch.InputThrottle, 1);
+  touch.setSteering(3, 5); touch.update(1);
+  assert.equal(touch.InputSteer, 1, 'joystick input clamps to the steering limit');
+  touch.clear(); touch.update(1);
+  assert.deepEqual([touch.InputSteer, touch.InputThrottle, touch.InputReverse, touch.InputBrake], [0, 0, 0, 0]);
+});
 function drive(state, input, steps) { for (let i = 0; i < steps; i++) stepVehicle(state, input); }
 
 test('touch reverse slows forward motion then reverses, cancels gas and clears on release/reset', () => {
@@ -325,7 +342,7 @@ test('top-speed approaches cannot tunnel through buildings or city limits; rever
 });
 
 test('five arrival zones and every ring/radial road have full vehicle clearance', () => {
-  assert.deepEqual(locations.map(l => l.shortName), ['大和', '安南', '龍山', '義合', '新營']);
+  assert.deepEqual(locations.map(l => l.shortName), ['永春大和', '樂活安南', '七股龍山', '七股義合', '樂活新營']);
   assert.equal(collides(SPAWN.x, SPAWN.z), false);
   for (const location of locations) {
     assert.equal(collides(...location.arrival), false);

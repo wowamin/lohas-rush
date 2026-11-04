@@ -22,7 +22,7 @@ bpy.context.preferences.filepaths.save_version = 0
 
 palette = {
     'white': '#f8f9f4', 'trim': '#58666b', 'tire': '#283237',
-    'glass': '#354f5a', 'windshield': '#718e99', 'glassHighlight': '#718e99', 'hub': '#b9c5c8',
+    'glass': '#354f5a', 'windshield': '#718e99', 'glassHighlight': '#718e99', 'hub': '#b9c5c8', 'mirror': '#b4ced8',
     'blue': '#b9dfe9', 'pink': '#e8a9c2', 'yellow': '#f3e34d',
     'green': '#deebc9', 'teal': '#168d88', 'lamp': '#fff1c8', 'tail': '#bc6262',
 }
@@ -44,7 +44,9 @@ for name, color in palette.items():
     alpha = .45 if name == 'windshield' else 1
     bsdf.inputs['Base Color'].default_value = (*rgb, alpha)
     bsdf.inputs['Alpha'].default_value = alpha
-    bsdf.inputs['Roughness'].default_value = .38 if name in ('glass', 'windshield', 'hub') else .76
+    bsdf.inputs['Roughness'].default_value = .12 if name == 'mirror' else .38 if name in ('glass', 'windshield', 'hub') else .76
+    if name == 'mirror':
+        bsdf.inputs['Metallic'].default_value = .75
     mat.diffuse_color = (*rgb, alpha)
     materials[name] = mat
 
@@ -142,6 +144,13 @@ box((0,1.20,-1.77),(1.86,.30,.28),'trim')
 for side in (-1,1):
     box((side*.55,.84,-1.04),(.32,.18,.30),'trim')
     box((side*.55,.93,-1.04),(.48,.10,.46),'trim')
+    # Fixed seat backs behind the driver and copilot, clear of their heads/bun.
+    box((side*.55,1.33,-.69),(.48,.70,.15),'trim')
+    box((side*.55,1.34,-.7775),(.40,.58,.025),'glassHighlight')
+    box((side*.55,.988,-1.055),(.40,.016,.34),'glassHighlight')
+    for edge in (-1,1):
+        box((side*.55+edge*.155,1.34,-.792),(.006,.49,.004),'hub')
+    box((side*.55,1.56,-.792),(.31,.006,.004),'hub')
 
 wheels = []
 for side in (-1, 1):
@@ -169,20 +178,18 @@ for side in (-1, 1):
     box((side*1.089,1.13,1.32),(.012,.025,1.18),'trim')
     box((side*1.09,.66,0),(.07,.08,1.51),'hub')
     driver_box((side*1.14,1.66,-1.30),(.15,.055,.13),'trim')
-    driver_box((side*1.215,1.76,-1.31),(.12,.27,.18),'white')
-    driver_box((side*1.278,1.76,-1.31),(.008,.20,.13),'glass')
+    # Mirror housing faces the front; the opaque reflective surface faces +Z (rear).
+    mirror_x = side*1.215
+    driver_box((mirror_x,1.76,-1.31),(.12,.27,.09),'white')
+    driver_box((mirror_x,1.76,-1.261),(.108,.238,.008),'trim')
+    driver_face([(mirror_x-.047,1.653,-1.255),(mirror_x+.047,1.653,-1.255),
+                 (mirror_x+.047,1.867,-1.255),(mirror_x-.047,1.867,-1.255)],'mirror',side)
     for z in (-1.3, 1.3):
         wheels.append({'x': side*1.075, 'y': .56, 'z': z, 'radius': .42, 'width': .25})
         cylinder_x(side*1.075,.56,z,.42,.25,'tire')
         cylinder_x(side*1.208,.56,z,.255,.025,'hub')
         cylinder_x(side*1.226,.56,z,.10,.015,'trim')
-    # Roof rails are the visible equipment reference; no emergency light bar.
-    box((side*.77,2.42,.43),(.065,.075,2.65),'trim')
-    for z in (-.7,1.5):
-        box((side*.77,2.375,z),(.09,.075,.16),'hub')
-
-for z in (-.60,1.40):
-    box((0,2.425,z),(1.60,.05,.075),'trim')
+# Keep the roof bare and white: no rails, crossbars or mounting brackets.
 outer=[(-1.08,1.5,-2.05),(-1.08,2.35,-1.65),(1.08,2.35,-1.65),(1.08,1.5,-2.05)]
 inner=[(-.96,1.59,windshield_z(1.59)),(-.96,2.23,windshield_z(2.23)),(.96,2.23,windshield_z(2.23)),(.96,1.59,windshield_z(1.59))]
 for i in range(4):

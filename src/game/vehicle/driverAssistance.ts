@@ -9,9 +9,10 @@ export function driverPose(phase:TransferPhase,progress=0):DriverPose {
   if(phase==='stowed') return {...pose,x:-.55,y:.75,z:-1.10,yaw:Math.PI,seated:1};
   if(phase==='driverExit' || phase==='driverEnter') {
     const u=phase==='driverExit'?progress:1-progress;
-    const move=smooth((u-.30)/.70), reposition=smooth((u-.18)/.18);
+    // Leave the seat sideways before moving behind its fixed backrest.
+    const move=smooth((u-.30)/.70), reposition=smooth((u-.70)/.30);
     pose.x=mix(-.55,-1.85,move);pose.y=mix(.75,.14,move);pose.z=mix(-1.10,-.75,reposition);
-    pose.yaw=phase==='driverExit'?mix(Math.PI,Math.PI*1.5,smooth(u/.4)):mix(Math.PI/2,Math.PI,smooth(progress/.75));pose.seated=1-move;
+    pose.yaw=phase==='driverExit'?mix(Math.PI,Math.PI*1.5,smooth((u-.35)/.35)):mix(Math.PI/2,Math.PI,smooth(progress/.75));pose.seated=1-move;
     pose.walking=Math.sin(Math.PI*move);pose.door=smooth(u/.20);
     return pose;
   }
