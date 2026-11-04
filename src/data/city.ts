@@ -9,7 +9,7 @@ export type Obstacle = { x: number; z: number; halfX: number; halfZ: number; kin
 export type Building = Obstacle & { id: string; name: string; height: number; color: string; location?: typeof locations[number]; service?: ServicePoint; description: string; residential?: boolean; shop?: boolean; lotId?: string; rotation?: number };
 export const HEADQUARTERS_FOOTPRINT_SCALE = Math.sqrt(1.3);
 export const buildings: Building[] = [
-  ...locations.map(location => ({ id: location.id, name: location.name, x: location.position[0], z: location.position[2], halfX: 6, halfZ: 6, height: 7, color: location.color, location, lotId: location.lotId, rotation: location.rotation, description: '日照中心幾何佔位；待提供實景照片及授權。' })),
+  ...locations.map(location => ({ id: location.id, name: location.name, x: location.position[0], z: location.position[2], halfX: location.id === 'daihe' || location.id === 'xinying' ? 7 : 6, halfZ: location.id === 'daihe' ? 6 : location.id === 'annan' || location.id === 'xinying' ? 7 : 6, height: location.id === 'daihe' ? 13 : location.id === 'annan' ? 9.2 : location.id === 'xinying' ? 27.6 : 7, color: location.color, location, lotId: location.lotId, rotation: location.rotation, description: location.id === 'daihe' ? '依使用者提供的永春大和日照中心外觀參考製作的遊戲示意建築，非實測重建。' : location.id === 'annan' ? '依使用者提供的樂活安南日照中心外觀參考製作的遊戲示意建築，非實測重建。' : location.id === 'xinying' ? '依使用者提供的樂活新營日照中心外觀參考製作的遊戲示意建築，非實測重建。' : '日照中心幾何佔位；待提供實景照片及授權。' })),
   ...generatedCity.shops.map(({ point, prefab }) => {
     const shop = shopPrefabs.find(item => item.id === prefab)!;
     return { id: `shop-${point.id}`, name: shop.name, x: point.position[0], z: point.position[2], halfX: 4.5, halfZ: 4.5,

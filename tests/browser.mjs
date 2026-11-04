@@ -18,6 +18,57 @@ try {
   await page.bringToFront();
   await page.locator('canvas').waitFor();
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
+  await page.waitForFunction(async () => {
+    const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    return _roots.get(document.querySelector('canvas'))?.store.getState().scene.getObjectByName('daihe-center-building')?.children.length > 0;
+  });
+  const daiheModel = await page.evaluate(async () => {
+    const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    const THREE = await import('/node_modules/.vite/deps/three.js');
+    const scene = _roots.get(document.querySelector('canvas')).store.getState().scene;
+    const model = scene.getObjectByName('daihe-center-building');
+    const bounds = new THREE.Box3().setFromObject(model);
+    const surfaces = [];
+    model.traverse(child => { if (child.name.startsWith('daihe-center-')) surfaces.push(child.name); });
+    return { size: bounds.getSize(new THREE.Vector3()).toArray(), surfaces };
+  });
+  assert.ok(daiheModel.size[0] > 12 && daiheModel.size[1] > 10, 'Daihe uses the supplied multi-storey reference model');
+  assert.ok(daiheModel.surfaces.includes('daihe-center-canopy'));
+  assert.ok(daiheModel.surfaces.includes('daihe-center-louver'));
+  await page.waitForFunction(async () => {
+    const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    return _roots.get(document.querySelector('canvas'))?.store.getState().scene.getObjectByName('annan-center-building')?.children.length > 0;
+  });
+  const annanModel = await page.evaluate(async () => {
+    const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    const THREE = await import('/node_modules/.vite/deps/three.js');
+    const scene = _roots.get(document.querySelector('canvas')).store.getState().scene;
+    const model = scene.getObjectByName('annan-center-building');
+    const bounds = new THREE.Box3().setFromObject(model);
+    const surfaces = [];
+    model.traverse(child => { if (child.name.startsWith('annan-center-') || child.name === 'annan-center-sign') surfaces.push(child.name); });
+    return { size: bounds.getSize(new THREE.Vector3()).toArray(), surfaces };
+  });
+  assert.ok(annanModel.size[0] > 12 && annanModel.size[1] > 8, 'Annan uses the supplied single-storey sign-front model');
+  assert.ok(annanModel.surfaces.includes('annan-center-sign'));
+  assert.ok(annanModel.surfaces.includes('annan-center-glass'));
+  await page.waitForFunction(async () => {
+    const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    return _roots.get(document.querySelector('canvas'))?.store.getState().scene.getObjectByName('xinying-center-building')?.children.length > 0;
+  });
+  const xinyingModel = await page.evaluate(async () => {
+    const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    const THREE = await import('/node_modules/.vite/deps/three.js');
+    const scene = _roots.get(document.querySelector('canvas')).store.getState().scene;
+    const model = scene.getObjectByName('xinying-center-building');
+    const bounds = new THREE.Box3().setFromObject(model);
+    const surfaces = [];
+    model.traverse(child => { if (child.name.startsWith('xinying-center-')) surfaces.push(child.name); });
+    return { size: bounds.getSize(new THREE.Vector3()).toArray(), surfaces };
+  });
+  assert.ok(xinyingModel.size[0] > 12 && xinyingModel.size[1] > 25, 'Xinying uses the supplied multi-storey reference model');
+  assert.ok(xinyingModel.surfaces.includes('xinying-center-main-sign'));
+  assert.ok(xinyingModel.surfaces.includes('xinying-center-mesh'));
   assert.equal(await page.locator('.touch-controls').isVisible(), false, 'desktop keeps keyboard UI');
   const cameraSwitch = page.locator('.camera-switch');
   await expect(cameraSwitch).toHaveText('鏡頭：跟車');
@@ -28,7 +79,8 @@ try {
   await page.waitForTimeout(1500);
   const overviewShot = await page.screenshot({ clip: { x: 500, y: 300, width: 400, height: 400 } });
   assert.notDeepEqual(overviewShot, chaseShot, 'switch changes the actual central scene outside HUD');
-  await cameraSwitch.click();
+  await cameraSwitch.focus();
+  await cameraSwitch.press('Enter');
   await expect(cameraSwitch).toHaveText('鏡頭：跟車');
   await page.keyboard.press('c');
   await page.keyboard.press('r');

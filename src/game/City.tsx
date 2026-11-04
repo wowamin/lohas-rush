@@ -10,6 +10,9 @@ import { ChairpersonNPC } from './characters/ChairpersonNPC';
 import { HeadquartersBanner } from './HeadquartersBanner';
 import { HeadquartersBuilding } from './HeadquartersBuilding';
 import { BirthdayCake } from './BirthdayCake';
+import { DaiheCenterBuilding } from './DaiheCenterBuilding';
+import { AnnanCenterBuilding } from './AnnanCenterBuilding';
+import { XinyingCenterBuilding } from './XinyingCenterBuilding';
 export function City() {
   const [hiddenShops, setHiddenShops] = useState<ReadonlySet<string>>(new Set());
   const mission = useGame(s => s.missionIndex);
@@ -21,6 +24,9 @@ export function City() {
     <directionalLight position={[-30, 70, 25]} intensity={2.5} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-130} shadow-camera-right={130} shadow-camera-top={130} shadow-camera-bottom={-130} shadow-camera-far={300} shadow-normalBias={0.08} />
     <StaticScenery hiddenShops={hiddenShops} />
     <HeadquartersBuilding />
+    <DaiheCenterBuilding />
+    <AnnanCenterBuilding />
+    <XinyingCenterBuilding />
     <BirthdayCake />
     <ChairpersonNPC />
     <HeadquartersBanner />
@@ -33,7 +39,7 @@ export function City() {
       <mesh position={[0, 1.7, 0]}><cylinderGeometry args={[0.35, 0.6, 2.5, 10]} /><meshStandardMaterial color="#efeadb" /></mesh>
       <mesh position={[0, 3.2, 0]}><coneGeometry args={[1.5, 2, 12]} /><meshStandardMaterial color="#b7e0e5" transparent opacity={0.7} /></mesh>
     </group>
-    {buildings.filter(b => !b.residential && !b.shop).map(b => <Html key={b.id} position={[b.x, b.height + 2, b.z]} center distanceFactor={45} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}><div className="world-label">{b.name}<small>{b.id === 'headquarters' ? '1F 樂活現煮食（團膳工廠）・2F 集團總部辦公室' : '幾何佔位・遊戲示意'}</small></div></Html>)}
+    {buildings.filter(b => !b.residential && !b.shop).map(b => <Html key={b.id} position={[b.x, b.height + 2, b.z]} center distanceFactor={45} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}><div className="world-label">{b.name}<small>{b.id === 'headquarters' ? '1F 樂活現煮食（團膳工廠）・2F 集團總部辦公室' : ['daihe', 'annan', 'xinying'].includes(b.id) ? '依外觀參考製作・遊戲示意' : '幾何佔位・遊戲示意'}</small></div></Html>)}
     {nearbyShop && <Html position={[nearbyShop.x, nearbyShop.height + 2, nearbyShop.z]} center distanceFactor={35} zIndexRange={[8, 0]} style={{ pointerEvents: 'none' }}><div className="world-label">{nearbyShop.name}<small>虛構店家・遊戲示意</small></div></Html>}
     <Html position={[43, 4, 28]} center distanceFactor={30} zIndexRange={[8, 0]} style={{ pointerEvents: 'none' }}><div className="world-label">餐車配送・遊戲示意<small>真實供應範圍及餐食未核實</small></div></Html>
     {locations.map((l, i) => <group key={l.id} position={[l.arrival[0], 0.14, l.arrival[1]]}>

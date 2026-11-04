@@ -44,6 +44,7 @@ for (const block of cityBlocks) {
   box([block.center[0], -0.01, block.center[1]], [block.lotWidth, 0.06, block.lotDepth], block.district === 'west' ? '#c8d4b7' : '#d5d9bd');
 }
 buildings.forEach((b, index) => {
+  if (b.id === 'daihe' || b.id === 'annan' || b.id === 'xinying') return;
   const rotation = b.rotation ?? 0, sin = Math.sin(rotation), cos = Math.cos(rotation);
   let owner: string | undefined;
   const add = (position: Instance['position'], size: Instance['size'], color: string) =>

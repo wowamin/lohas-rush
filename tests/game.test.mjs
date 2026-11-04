@@ -31,6 +31,36 @@ test('expanded city adds exactly thirty percent area and keeps all outer roads r
   assert.ok(nodes.length>10);
   for(const node of nodes){assert.equal(collides(...node.point),false);assert.ok(findRoadRoute('0-0',node.id).length>1);}
   assert.deepEqual(locations.map(l=>l.position),[[-260,0,-180],[-324,0,212],[-16,0,340],[324,0,244],[356,0,-180]]);
+  const daihe = buildings.find(building => building.id === 'daihe');
+  assert.ok(daihe);
+  assert.deepEqual([daihe.halfX, daihe.halfZ, daihe.height], [7, 6, 13]);
+  const annan = buildings.find(building => building.id === 'annan');
+  assert.ok(annan);
+  assert.deepEqual([annan.halfX, annan.halfZ, annan.height], [6, 7, 9.2]);
+  const xinying = buildings.find(building => building.id === 'xinying');
+  assert.ok(xinying);
+  assert.deepEqual([xinying.halfX, xinying.halfZ, xinying.height], [7, 7, 27.6]);
+  const [daiheX, , daiheZ] = daihe.location.position;
+  for (const road of roads) {
+    const a = nodeById.get(road.from).point, b = nodeById.get(road.to).point;
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    const t = Math.max(0, Math.min(1, ((daiheX - a[0]) * dx + (daiheZ - a[1]) * dz) / (dx * dx + dz * dz)));
+    assert.ok(Math.hypot(daiheX - a[0] - t * dx, daiheZ - a[1] - t * dz) > Math.hypot(daihe.halfX, daihe.halfZ) + road.width / 2, `Daihe building clears ${road.kind} road`);
+  }
+  const [annanX, , annanZ] = annan.location.position;
+  for (const road of roads) {
+    const a = nodeById.get(road.from).point, b = nodeById.get(road.to).point;
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    const t = Math.max(0, Math.min(1, ((annanX - a[0]) * dx + (annanZ - a[1]) * dz) / (dx * dx + dz * dz)));
+    assert.ok(Math.hypot(annanX - a[0] - t * dx, annanZ - a[1] - t * dz) > Math.hypot(annan.halfX, annan.halfZ) + road.width / 2, `Annan building clears ${road.kind} road`);
+  }
+  const [xinyingX, , xinyingZ] = xinying.location.position;
+  for (const road of roads) {
+    const a = nodeById.get(road.from).point, b = nodeById.get(road.to).point;
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    const t = Math.max(0, Math.min(1, ((xinyingX - a[0]) * dx + (xinyingZ - a[1]) * dz) / (dx * dx + dz * dz)));
+    assert.ok(Math.hypot(xinyingX - a[0] - t * dx, xinyingZ - a[1] - t * dz) > Math.hypot(xinying.halfX, xinying.halfZ) + road.width / 2, `Xinying building clears ${road.kind} road`);
+  }
   assert.deepEqual(river.bridgeCenters,[-480,0,260,480]);
 });
 
@@ -431,7 +461,9 @@ test('river and banks block top-speed approaches; bridge works both directions a
 
 test('all service entrances connect to roads; reference status stays explicit and day work remains separate', () => {
   for (const location of locations) {
-    assert.equal(location.reference.status, 'missing');
+    const hasReference = ['daihe', 'annan', 'xinying'].includes(location.id);
+    assert.equal(location.reference.status, hasReference ? 'provided' : 'missing');
+    assert.equal(location.reference.source, hasReference ? 'user-attachment' : 'awaiting-photo');
     assert.equal(location.reference.photo, null);
     for (let angle = 0; angle < Math.PI * 2; angle += 0.15) {
       assert.equal(collides(location.arrival[0] + Math.cos(angle) * location.radius, location.arrival[1] + Math.sin(angle) * location.radius), false, location.id);
