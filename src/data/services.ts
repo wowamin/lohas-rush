@@ -8,7 +8,6 @@ const reference = () => ({ status: 'missing' as const, photo: null, required: ['
 export const servicePoints: ServicePoint[] = [
   { id: 'day-work', name: '樂活島日間作業設施', category: '日間作業', x: -46, z: 10, halfX: 4, halfZ: 4, height: 5, color: '#e6cda8', arrival: polar(32, 31), description: '獨立於長者日照中心的遊戲服務建築；作業設施與長者日照不視為同一服務。實際對象與內容待確認。', reference: reference() },
   { id: 'clinic', name: '樂活全齡綜合診所', category: '診所', x: 14, z: 45, halfX: 2.5, halfZ: 5, height: 13, color: '#9fcbd7', arrival: polar(32, 2), description: '街邊狹長、多層量體的風格化佔位。未取得照片；診療項目、時段與資格未核實。', reference: reference() },
-  { id: 'kitchen', name: '樂活現煮食', category: '團膳', x: 43, z: 20, halfX: 4, halfZ: 4, height: 6, color: '#eed9aa', arrival: polar(32, 7), description: '食安衛生、營養餐食、特殊飲食需求及配送的情境預留。餐車供餐連結僅為遊戲示意；真實路線、供應範圍與餐食未核實。', reference: reference() },
   { id: 'nursing', name: '長照住宿式機構', category: '住宿照護', x: 30, z: -37, halfX: 4, halfZ: 4, height: 9, color: '#c7bbda', arrival: polar(32, 16), description: '虛構住宿照護服務點；外觀、照護項目與入住資格待確認。', reference: reference() },
   { id: 'home-care', name: '居家長照服務', category: '居家服務', x: -16, z: -44, halfX: 4, halfZ: 4, height: 5, color: '#b7cfb6', arrival: polar(32, 22), description: '居家服務的遊戲探索據點；真實服務區域、資格與項目未核實。', reference: reference() },
   { id: 'transport', name: '永春居家護理所', category: '居護所', x: -35, z: -31, halfX: 4, halfZ: 4, height: 5, color: '#e6baab', arrival: polar(32, 25), description: '居家護理所是由專業護理師到宅提供醫療與護理服務的機構，負責處理需要專業執照執行的醫療處置，而非日常生活照顧。', reference: reference() },
