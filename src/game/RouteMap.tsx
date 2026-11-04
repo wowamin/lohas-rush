@@ -28,6 +28,6 @@ export function RouteMap() {
     {!completed && <polyline points={route} fill="none" stroke="#c59945" strokeWidth="3pt" vectorEffect="non-scaling-stroke" />}
     {locations.map((location, i) => <g key={location.id}><circle cx={location.position[0]} cy={location.position[2]} r={9 * markerScale * mapScale} fill={i < mission || completed ? '#769d7a' : i === mission ? '#d8b05e' : '#d4dbcd'} /><text x={location.position[0]} y={location.position[2] + 3 * markerScale * mapScale} textAnchor="middle" fontSize={9 * markerScale * mapScale} fill="#284c44">{i + 1}</text></g>)}
     {outside && <g className="parked-bus" transform={`translate(${busX} ${busZ}) scale(${markerScale * mapScale})`}><title>停駐巴士</title><rect x="-4" y="-6" width="8" height="12" rx="2" fill="#a68b55" stroke="white" strokeWidth="1.5" /></g>}
-    <g className="map-vehicle" transform={`translate(${x} ${z})`}><title>{outside ? '目前輪椅位置' : '目前車輛位置'}</title><circle r="5pt" fill="#e14343" stroke="white" strokeWidth="1pt" vectorEffect="non-scaling-stroke" /></g>
+    <g className="map-vehicle" transform={`translate(${x} ${z})`}><title>{outside ? '目前輪椅位置' : '目前車輛位置'}</title><circle className="map-vehicle-dot" r="5pt" fill="#e14343" stroke="white" strokeWidth="1pt" vectorEffect="non-scaling-stroke" /></g>
   </svg>{!collapsed && <small>遊戲配置・非真實地理位置</small>}</section>;
 }

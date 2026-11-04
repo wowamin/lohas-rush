@@ -67,3 +67,4 @@
 .transfer-button:hover:not(:disabled){background:#2f5e4c;color:#fff8e2}
 
 canvas.is-orbiting{cursor:grabbing}@media(any-pointer:coarse){.mouse-look-hint{display:none}}
+@media(min-width:851px){.route-map:not(.is-collapsed) .map-vehicle-dot{r:10pt;stroke:none}}
