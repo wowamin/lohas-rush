@@ -9,6 +9,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.text().startsWith('ROUTE:')) console.log(message.text()); });
   await page.goto(baseURL);
+  await page.bringToFront();
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
   const expected = await page.evaluate(async () => {
     const { locations } = await import('/src/data/locations.ts');
@@ -19,18 +20,19 @@ try {
     // Do not teleport, change vehicle state, or call the mission advancement action.
     const { locations } = await import('/src/data/locations.ts');
     const { findRoadRoute, nearestRoadNode } = await import('/src/data/roadNetwork.ts');
+    const { useGame } = await import('/src/stores/game.ts');
     const held = new Set();
     const key = (code, down) => {
       if (held.has(code) === down) return;
       if (down) held.add(code); else held.delete(code);
       window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true, cancelable: true }));
     };
-    let mission = -1, waypoints = [], index = 0, lastLog = 0;
+    let mission = -1, waypoints = [], index = 0, lastLog = 0, stalledSince = 0, recoveries = 0;
     const visited = [], started = performance.now();
     const read = () => {
-      const coordinates = document.querySelector('.map-vehicle').getAttribute('transform').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g).map(Number);
+      const { x, z, angle } = useGame.getState();
       const active = document.querySelector('.route-stop.active .stop-number');
-      return { x: coordinates[0], z: coordinates[1], angle: -coordinates[2] * Math.PI / 180,
+      return { x, z, angle,
         speed: Number(document.querySelector('.speed-panel strong').textContent),
         missionIndex: active ? Number(active.textContent) - 1 : locations.length - 1, completed: !active };
     };
@@ -53,6 +55,22 @@ try {
         const desired = Math.atan2(-(target[0] - state.x), -(target[1] - state.z));
         const error = Math.atan2(Math.sin(desired - state.angle), Math.cos(desired - state.angle));
         const targetSpeed = Math.abs(error) > 0.45 ? 15 : 30;
+        // A stop against a building is correct collision behaviour. Back away
+        // through real keys before trying the turn again; never teleport/reset.
+        if (state.speed === 0 && held.has('KeyW')) {
+          if (!stalledSince) stalledSince = performance.now();
+          if (performance.now() - stalledSince > 1500) {
+            if (++recoveries > 12) return { completed: false, visited, reason: 'too many collision recoveries', ...state };
+            key('KeyW', false); key('KeyA', false); key('KeyD', false); key('Space', false); key('KeyS', true);
+            const before = read();
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            key('KeyS', false);
+            const after = read();
+            if (Math.hypot(after.x - before.x, after.z - before.z) < 1) return { completed: false, visited, reason: 'reverse could not clear obstacle', ...after };
+            console.log(`ROUTE: collision recovery ${recoveries} by reversing`);
+            stalledSince = 0; continue;
+          }
+        } else stalledSince = 0;
         key('KeyA', error > 0.07); key('KeyD', error < -0.07);
         key('KeyW', state.speed < targetSpeed); key('Space', state.speed > targetSpeed + 8);
         await new Promise(resolve => setTimeout(resolve, 35));
@@ -84,6 +102,7 @@ try {
 
   const bridge = await page.evaluate(async () => {
     const { findRoadRoute } = await import('/src/data/roadNetwork.ts');
+    const { useGame } = await import('/src/stores/game.ts');
     const points = findRoadRoute('0-0', 'hospital');
     const held = new Set();
     const key = (code, down) => {
@@ -95,11 +114,11 @@ try {
     const start = performance.now();
     try {
       while (performance.now() - start < 90000) {
-        const [x, z, degrees] = document.querySelector('.map-vehicle').getAttribute('transform').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g).map(Number);
+        const { x, z, angle } = useGame.getState();
         if (x > 85 && x < 95 && Math.abs(z) < 6) crossedRiver = true;
         if (Math.hypot(x - 110, z + 12) < 3.5) return { arrived: true, crossedRiver };
         while (index < points.length - 1 && Math.hypot(x - points[index][0], z - points[index][1]) < 3.5) index++;
-        const [tx, tz] = points[index], angle = -degrees * Math.PI / 180;
+        const [tx, tz] = points[index];
         const desired = Math.atan2(-(tx - x), -(tz - z));
         const error = Math.atan2(Math.sin(desired - angle), Math.cos(desired - angle));
         const speed = Number(document.querySelector('.speed-panel strong').textContent);

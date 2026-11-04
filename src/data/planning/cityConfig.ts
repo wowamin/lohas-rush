@@ -1,7 +1,7 @@
 export const cityConfig = {
   id: 'lohas-ecosystem-city-c', name: '樂活長照生態城',
   status: 'data-only', enabled: false, requiresApproval: 'V0.2',
-  activationBlockedBy: ['unconfirmed-institution-names', 'unrouted-branch-roads', 'yihe-middle-ring-conflict', 'missing-models'],
+  activationBlockedBy: ['unrouted-branch-roads', 'yihe-middle-ring-conflict', 'missing-models'],
   world: { width: 2400, depth: 2400, minX: -1200, maxX: 1200, minZ: -1200, maxZ: 1200 },
   roads: {
     rings: [
@@ -18,11 +18,17 @@ export const cityConfig = {
       { id: 'logistics-streets', name: '物流道路', width: 20, status: 'unrouted' },
     ],
     buildingSetback: 8, junctionReserveRadius: 24,
-    unresolvedReservations: [{ landmarkId: 'c-yihe', roadId: 'middle-ring', resolution: 'local-detour-required', status: 'unresolved' }],
+    unresolvedReservations: [{
+      landmarkId: 'c-yihe',
+      roadId: 'middle-ring',
+      resolution: 'local-detour-required',
+      proposal: '保留義合座標，局部將 R650 中環中心線外繞至至少 R675，再以平順曲線接回；完成全建築 AABB、道路淨空及路網連通驗證前不得啟用。',
+      status: 'unresolved',
+    }],
   },
   streaming: { chunkSize: 128, loadRadius: 2, unloadRadius: 3, implementation: 'reserved' },
   lod: { modelDistance: 180, proxyDistance: 500, cullDistance: 900 },
-  source: { serviceOverview: 'not-attached', namesPending: { residentialCare: 12, nursingCenters: 8 } },
+  source: { serviceOverview: 'not-attached', namesSource: 'user-text', namesPending: 0 },
 } as const;
 
 export const plannedMissionOrder = ['c-daihe', 'c-annan', 'c-longshan', 'c-yihe', 'c-xinying'] as const;

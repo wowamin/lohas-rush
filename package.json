@@ -11,9 +11,13 @@
     "test:orbit": "node tests/orbit.browser.mjs",
     "test:browser": "node tests/browser.mjs",
     "test:vehicle": "node tests/vehicle.browser.mjs",
+    "test:signals": "node tests/turn-signals.browser.mjs",
+    "test:street": "node --test --test-isolation=none tests/pedestrian-street.test.mjs",
+    "test:street:browser": "node tests/pedestrian-street.browser.mjs",
     "test:passengers": "node tests/passengers.browser.mjs",
     "test:wheelchair": "node tests/wheelchair.browser.mjs",
-    "test:routes": "node tests/routes.browser.mjs"
+    "test:routes": "node tests/routes.browser.mjs",
+    "test:expansion": "node tests/expansion.browser.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

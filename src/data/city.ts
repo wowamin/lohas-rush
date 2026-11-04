@@ -2,10 +2,12 @@ import { locations } from './locations.ts';
 import { servicePoints, type ServicePoint } from './services.ts';
 import { landscapeObstacles } from './landscape.ts';
 import { generatedCity, shopPrefabs } from './buildingLots.ts';
+import { expansionBuildings } from './cityExpansion.ts';
 export { locations, type Location } from './locations.ts';
 export { CITY_LIMIT } from './roadNetwork.ts';
 export type Obstacle = { x: number; z: number; halfX: number; halfZ: number; kind?: string };
 export type Building = Obstacle & { id: string; name: string; height: number; color: string; location?: typeof locations[number]; service?: ServicePoint; description: string; residential?: boolean; shop?: boolean; lotId?: string; rotation?: number };
+export const HEADQUARTERS_FOOTPRINT_SCALE = Math.sqrt(1.3);
 export const buildings: Building[] = [
   ...locations.map(location => ({ id: location.id, name: location.name, x: location.position[0], z: location.position[2], halfX: 6, halfZ: 6, height: 7, color: location.color, location, lotId: location.lotId, rotation: location.rotation, description: '日照中心幾何佔位；待提供實景照片及授權。' })),
   ...generatedCity.shops.map(({ point, prefab }) => {
@@ -13,9 +15,10 @@ export const buildings: Building[] = [
     return { id: `shop-${point.id}`, name: shop.name, x: point.position[0], z: point.position[2], halfX: 4.5, halfZ: 4.5,
       height: shop.height, color: shop.color, rotation: point.rotation, lotId: point.id, shop: true, description: '虛構街坊店家，程式生成幾何示意，非真實商家。' };
   }),
-  { id: 'headquarters', name: '樂活總部', x: -10, z: -2, halfX: 5, halfZ: 5, height: 11, color: '#f5f4ef', description: '依提供參考圖製作白色外牆、深色窗框及欄杆的遊戲示意建築。' },
+  { id: 'headquarters', name: '樂活總部', x: -10, z: -2, halfX: 5 * HEADQUARTERS_FOOTPRINT_SCALE, halfZ: 5 * HEADQUARTERS_FOOTPRINT_SCALE, height: 11, color: '#f5f4ef', description: '占地面積較原建築增加 30%；1F 為樂活現煮食團膳工廠，2F 為樂活長照集團總部辦公室。遊戲示意建築。' },
   ...servicePoints.map(service => ({ ...service, service })),
   ...[108, 122].flatMap((x, i) => [26, 43].map((z, j) => ({ id: `home-${i}-${j}`, name: '住宅社區', x, z, halfX: 4, halfZ: 4, height: 5 + j * 2, color: i ? '#e6d9c3' : '#dfc6bc', residential: true, description: '虛構一般住宅。' }))),
+  ...expansionBuildings,
 ];
 export const fountain = { x: 8, z: 0, radius: 6 };
 const headquarters = buildings.find(building => building.id === 'headquarters')!;

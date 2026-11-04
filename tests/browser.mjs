@@ -15,6 +15,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(baseURL);
+  await page.bringToFront();
   await page.locator('canvas').waitFor();
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
   assert.equal(await page.locator('.touch-controls').isVisible(), false, 'desktop keeps keyboard UI');
@@ -34,29 +35,28 @@ try {
   await expect(cameraSwitch).toHaveText('鏡頭：跟車');
   await page.waitForTimeout(250);
   const speed = () => page.locator('.speed-panel strong').innerText().then(Number);
+  const settleFrames = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await settleFrames();
   await page.keyboard.down('w');
-  await page.waitForTimeout(1300);
-  assert.ok(await speed() > 0, 'forward input increases speed');
+  await expect.poll(speed, { timeout: 15000, message: 'forward input increases speed' }).toBeGreaterThan(5);
   await page.keyboard.up('w');
   await page.keyboard.down('Space');
-  await page.waitForTimeout(1000);
+  await expect.poll(speed, { timeout: 15000, message: 'Space stops vehicle' }).toBe(0);
   await page.keyboard.up('Space');
   assert.equal(await speed(), 0, 'Space stops vehicle');
   await page.keyboard.press('r');
-  await page.waitForTimeout(200);
+  await settleFrames();
   assert.equal(await speed(), 0);
   await page.keyboard.down('s');
-  await page.waitForTimeout(800);
-  assert.ok(await speed() > 0, 'reverse input works');
+  await expect.poll(speed, { timeout: 15000, message: 'reverse input works' }).toBeGreaterThan(5);
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await expect.poll(speed, { timeout: 15000, message: 'blur clears held throttle and the vehicle coasts to a stop' }).toBeLessThanOrEqual(1);
   await page.keyboard.up('s');
   await page.getByRole('button', { name: '重新開始' }).click();
-  await page.waitForTimeout(200);
+  await settleFrames();
   assert.equal(await speed(), 0, 'button resets vehicle');
   await page.keyboard.down('ArrowUp');
-  await page.waitForTimeout(800);
-  assert.ok(await speed() > 0, 'arrow input works');
+  await expect.poll(speed, { timeout: 15000, message: 'arrow input works' }).toBeGreaterThan(0);
   await page.keyboard.up('ArrowUp');
   await page.keyboard.press('r');
   await page.waitForTimeout(300);
@@ -145,12 +145,17 @@ try {
 
   for (const [width, height, name] of [[390, 844, 'portrait'], [844, 390, 'landscape'], [320, 568, 'small']]) {
     await mobile.setViewportSize({ width, height });
-    const bounds = await mobile.locator('.touch-button, .mission-panel, .speed-panel, .camera-switch').evaluateAll(elements =>
+    const bounds = await mobile.locator('.touch-button, .touch-joystick, .mission-panel, .speed-panel, .camera-switch').evaluateAll(elements =>
       elements.map(element => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom }; }));
     for (const box of bounds) assert.ok(box.x >= 0 && box.y >= 0 && box.right <= width && box.bottom <= height, `${name} UI stays inside viewport`);
     const mission = await mobile.locator('.mission-panel').boundingBox();
-    const controls = await mobile.locator('.touch-buttons').boundingBox();
-    assert.ok(mission.y + mission.height < controls.y, `${name} mission does not cover controls`);
+    // The controls now use a transparent full-viewport positioning container.
+    // Compare actual interactive controls, not their full-screen parent.
+    const controls = await mobile.locator('.touch-button, .touch-joystick').evaluateAll(elements => elements.map(element => {
+      const r = element.getBoundingClientRect(); return { x:r.x, y:r.y, width:r.width, height:r.height };
+    }));
+    for(const control of controls) assert.ok(mission.x + mission.width <= control.x || control.x + control.width <= mission.x
+      || mission.y + mission.height <= control.y || control.y + control.height <= mission.y, `${name} mission does not cover controls`);
     assert.equal(await mobile.evaluate(() => document.documentElement.scrollHeight > innerHeight), false, `${name} has no vertical scroll`);
     await mobile.screenshot({ path: `.test-artifacts/city-mobile-${name}.png` });
   }

@@ -1,15 +1,15 @@
 import type { DistrictId, PlannedDistrict } from './cityTypes.ts';
 
 export const districtConfig: readonly PlannedDistrict[] = [
-  { id: 'central', name: '中央總部與廣場區', anchor: [0, 0, 0], purpose: '總部、噴水池及城市公共廣場', uses: ['headquarters', 'fountain', 'plaza'] },
-  { id: 'north', name: '北部醫療與照護區', anchor: [0, 0, -800], purpose: '醫療及長照設施規劃', uses: ['clinic', 'home-nursing', 'residential-care', 'nursing-center'] },
-  { id: 'northeast', name: '東北居家服務區', anchor: [600, 0, -600], purpose: '日照、居家及照護服務規劃', uses: ['day-center', 'home-care', 'care-management', 'residential-care', 'nursing-center'] },
-  { id: 'east', name: '東部全齡服務區', anchor: [800, 0, 0], purpose: '日照與綜合服務規劃', uses: ['day-center', 'clinic', 'residential-care', 'nursing-center'] },
-  { id: 'southeast', name: '東南服務與社區區', anchor: [600, 0, 600], purpose: '日照、居家與社區服務規劃', uses: ['day-center', 'home-nursing', 'care-management', 'home-care', 'housing', 'residential-care', 'nursing-center'] },
-  { id: 'south', name: '南部生活支援區', anchor: [0, 0, 800], purpose: '居家、團膳與生活支援規劃', uses: ['home-care', 'meal-factory', 'foundation', 'residential-care', 'nursing-center'] },
-  { id: 'southwest', name: '西南照護社區區', anchor: [-600, 0, 600], purpose: '日照、社區及日間作業規劃', uses: ['day-center', 'day-work', 'foundation', 'residential-care', 'nursing-center', 'public-utility'] },
-  { id: 'west', name: '西部交通物流區', anchor: [-800, 0, 0], purpose: '復康交通與後勤服務規劃', uses: ['accessible-transport', 'meal-factory', 'parking', 'residential-care', 'nursing-center'] },
-  { id: 'northwest', name: '西北培訓與照護區', anchor: [-600, 0, -600], purpose: '日照、培訓及照護規劃', uses: ['day-center', 'training', 'residential-care', 'nursing-center'] },
+  { id: 'central', name: '中央總部與廣場區', anchor: [0, 0, 0], purpose: '複合總部、噴水池及城市公共廣場', uses: ['headquarters', 'fountain', 'plaza', 'meal-factory'] },
+  { id: 'north', name: '北部醫療與照護區', anchor: [0, 0, -800], purpose: '醫療、合作醫院、培訓及生活服務規劃', uses: ['clinic', 'partner-hospital', 'home-nursing', 'residential-care', 'nursing-home', 'training', 'transport-base', 'commerce'] },
+  { id: 'northeast', name: '東北居家服務區', anchor: [600, 0, -600], purpose: '日照、居家及照護服務規劃', uses: ['day-center', 'partner-hospital', 'home-care', 'care-management', 'residential-care', 'nursing-home', 'other-service'] },
+  { id: 'east', name: '東部全齡服務區', anchor: [800, 0, 0], purpose: '日照、全齡服務與公園規劃', uses: ['day-center', 'partner-hospital', 'clinic', 'foundation', 'residential-care', 'nursing-home', 'park'] },
+  { id: 'southeast', name: '東南服務與社區區', anchor: [600, 0, 600], purpose: '日照、居家與社區服務規劃', uses: ['day-center', 'partner-hospital', 'home-nursing', 'care-management', 'home-care', 'foundation', 'housing', 'residential-care', 'nursing-home'] },
+  { id: 'south', name: '南部生活支援區', anchor: [0, 0, 800], purpose: '居家、學校與生活支援規劃', uses: ['partner-hospital', 'home-care', 'meal-factory', 'foundation', 'training', 'residential-care', 'nursing-home', 'school'] },
+  { id: 'southwest', name: '西南照護社區區', anchor: [-600, 0, 600], purpose: '日照、居家與社區服務規劃', uses: ['day-center', 'partner-hospital', 'day-work', 'disability-service', 'home-nursing', 'home-care', 'foundation', 'residential-care', 'nursing-home', 'public-utility'] },
+  { id: 'west', name: '西部交通物流區', anchor: [-800, 0, 0], purpose: '身障服務、居家照護、復康交通與後勤服務規劃', uses: ['partner-hospital', 'day-work', 'disability-service', 'home-care', 'accessible-transport', 'transport-base', 'logistics-warehouse', 'meal-factory', 'parking', 'residential-care', 'nursing-home'] },
+  { id: 'northwest', name: '西北培訓與照護區', anchor: [-600, 0, -600], purpose: '日照、居家照護及交通團膳後勤規劃', uses: ['day-center', 'partner-hospital', 'home-care', 'training', 'residential-care', 'nursing-home', 'accessible-transport', 'transport-base', 'meal-factory', 'logistics-warehouse'] },
 ];
 
 // Sector assignments are planning metadata, not a new runtime road network.

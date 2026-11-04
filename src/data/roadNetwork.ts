@@ -1,9 +1,10 @@
 import { streetNodes, streetRoads } from './streetGrid.ts';
+import { EXPANDED_CITY_LIMIT, expansionNodes, expansionRoads } from './cityExpansion.ts';
 export { cityBlocks, streetDistricts } from './streetGrid.ts';
 export type Point = [number, number];
 export type RoadNode = { id: string; point: Point };
 export type Road = { from: string; to: string; width: number; kind: 'ring' | 'radial' | 'bridge' | 'access' | 'street' };
-export const CITY_LIMIT = 448;
+export const CITY_LIMIT = EXPANDED_CITY_LIMIT;
 export const RING_SEGMENTS = 40;
 export const INNER_RADIUS = 32;
 export const OUTER_RADIUS = 64;
@@ -28,6 +29,8 @@ roads.push(
 );
 roadNodes.push(...streetNodes);
 roads.push(...streetRoads);
+roadNodes.push(...expansionNodes);
+roads.push(...expansionRoads);
 export const nodeById = new Map(roadNodes.map(node => [node.id, node]));
 const nodeOrder = new Map(roadNodes.map((node, index) => [node.id, index]));
 const adjacent = new Map(roadNodes.map(node => [node.id, [] as { id: string; distance: number }[]]));

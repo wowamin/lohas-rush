@@ -19,6 +19,21 @@ import { constrainCamera } from '../src/game/camera/cameraCollision.ts';
 
 const idle = { throttle: 0, steer: 0, brake: false };
 
+test('expanded city adds exactly thirty percent area and keeps all outer roads reachable and clear',()=>{
+  assert.ok(Math.abs((CITY_LIMIT/448)**2-1.30)<1e-12);
+  const homes=buildings.filter(b=>b.id.startsWith('expansion-home-'));
+  assert.equal(homes.length,32);
+  for(const b of homes){
+    assert.ok(Math.abs(b.x)>448 || Math.abs(b.z)>448);
+    assert.ok(Math.abs(b.x)+b.halfX+2<CITY_LIMIT && Math.abs(b.z)+b.halfZ+2<CITY_LIMIT);
+  }
+  const nodes=roadNodes.filter(n=>n.id.startsWith('expansion-'));
+  assert.ok(nodes.length>10);
+  for(const node of nodes){assert.equal(collides(...node.point),false);assert.ok(findRoadRoute('0-0',node.id).length>1);}
+  assert.deepEqual(locations.map(l=>l.position),[[-260,0,-180],[-324,0,212],[-16,0,340],[324,0,244],[356,0,-180]]);
+  assert.deepEqual(river.bridgeCenters,[-480,0,260,480]);
+});
+
 test('virtual camera follows target heading, selects priority and cuts directly on reset', () => {
   const brain = new CameraBrain();
   brain.reset(createVehicle());

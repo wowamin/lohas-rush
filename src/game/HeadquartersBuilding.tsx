@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { buildings } from '../data/city';
+import { buildings, HEADQUARTERS_FOOTPRINT_SCALE } from '../data/city';
 import { disposeModels } from './assets/GameAssets';
 
 type Point = [number, number, number];
@@ -38,24 +38,24 @@ function createHeadquartersBuilding() {
     box([x, y + height * .12, 5.165], [width, .045, .035], dark, 'frame');
     box([x, y - height / 2 - .11, 5.14], [width + .27, .09, .28], white);
   }
-  for (const y of [1.76, 6.55, 9.2]) {
+  for (const y of [1.76, 8.2]) {
     for (const x of [-4.47, -3.73]) frontWindow(x, y, .34, y < 2 ? 2.5 : 2.1);
   }
   frontWindow(-2.04, 1.68, 1.28, 2.15);
   frontWindow(3.52, 1.68, 2.02, 2.15);
-  for (const y of [6.6, 9.25]) {
+  for (const y of [8.2]) {
     frontWindow(-.65, y, 2.65, 2.05);
     frontWindow(3.36, y, 1.72, 2.05);
   }
   // Windows on both side walls keep the building finished from driving angles.
-  for (const side of [-1, 1]) for (const y of [1.75, 6.5, 9.2]) for (const z of [-3.25, -.15, 2.9]) {
+  for (const side of [-1, 1]) for (const y of [1.75, 8.2]) for (const z of [-3.25, -.15, 2.9]) {
     box([side * 5.025, y, z], [.10, 2.15, 1.55], trim);
     box([side * 5.085, y, z], [.08, 1.95, 1.35], dark, 'frame');
     box([side * 5.135, y, z], [.035, 1.80, 1.20], glass, 'glass');
     box([side * 5.162, y, z], [.035, 1.95, .043], dark, 'frame');
     box([side * 5.16, y - 1.13, z], [.26, .09, 1.67], white);
   }
-  for (const x of [-3.5, 0, 3.5]) for (const y of [1.75, 6.55, 9.2]) {
+  for (const x of [-3.5, 0, 3.5]) for (const y of [1.75, 8.2]) {
     box([x, y, -5.045], [1.45, 2.05, .08], dark, 'frame');
     box([x, y, -5.095], [1.28, 1.88, .035], glass, 'glass');
   }
@@ -73,7 +73,7 @@ function createHeadquartersBuilding() {
       for (let i = 0; i <= 5; i++) box([edge, floorY + .61, 4.97 + i * .15], [.025, .78, .025], dark, 'frame');
     }
   }
-  for (const y of [5.48, 8.14]) { balcony(-.65, y, 3.03); balcony(3.35, y, 2.24); }
+  for (const y of [5.48]) { balcony(-.65, y, 3.03); balcony(3.35, y, 2.24); }
   // Dark rooftop guardrails echo the reference's flat-roof silhouette.
   for (const z of [-4.96, 4.96]) {
     box([.96, 11.77, z], [8.08, .055, .055], dark, 'frame');
@@ -84,7 +84,7 @@ function createHeadquartersBuilding() {
     for (let z = -4.96; z <= 4.97; z += .15) box([x, 11.45, z], [.025, .64, .025], dark, 'frame');
   }
   // Porthole windows form the vertical accent beside the balconies.
-  for (const y of [6.95, 9.61]) {
+  for (const y of [8.55]) {
     add(new THREE.CircleGeometry(.38, 40), [1.40, y, 5.08], dark, 'frame');
     add(new THREE.CircleGeometry(.315, 40), [1.40, y, 5.105], glass, 'glass');
     add(new THREE.TorusGeometry(.405, .025, 8, 40), [1.40, y, 5.09], trim);
@@ -114,5 +114,6 @@ export function HeadquartersBuilding() {
     const container = host.current!, model = createHeadquartersBuilding(); container.add(model);
     return () => { container.remove(model); disposeModels([model]); };
   }, []);
-  return <group ref={host} name="headquarters-white-building" position={[headquarters.x, 0, headquarters.z]} />;
+  return <group ref={host} name="headquarters-white-building" position={[headquarters.x, 0, headquarters.z]}
+    scale={[HEADQUARTERS_FOOTPRINT_SCALE, 1, HEADQUARTERS_FOOTPRINT_SCALE]} />;
 }

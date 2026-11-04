@@ -7,6 +7,7 @@ import { createServiceVanFallback } from '../src/game/vehicle/serviceVan.ts';
 import { createVehicle, STEP } from '../src/game/vehicle/drivingPhysics.ts';
 import { disposeModels } from '../src/game/assets/GameAssets.ts';
 import { useGame } from '../src/stores/game.ts';
+import { CITY_LIMIT } from '../src/data/city.ts';
 
 function advance(machine, until, limit = 3000) {
   let steps = 0;
@@ -68,7 +69,7 @@ test('moving van cannot unload; rotated rear envelope refuses obstacles, water a
   }
   assert.equal(transferAreaClear({x:0,z:98,angle:0},[],100),false);
   assert.equal(transferAreaClear(createVehicle()),true);
-  assert.match(machine.request({...createVehicle(),z:445}), /空間不足/);
+  assert.match(machine.request({...createVehicle(),z:CITY_LIMIT-3}), /空間不足/);
   assert.match(machine.request({...createVehicle(),x:90,z:30}), /空間不足/);
 });
 

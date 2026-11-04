@@ -14,6 +14,7 @@ import { PassengerRig } from './vehicle/PassengerRig';
 import { wheelchairDock, wheelchairLocal, stepWheelchair } from './vehicle/wheelchairController';
 import { DriverRig } from './vehicle/DriverRig';
 import { CaregiverRig } from './vehicle/CaregiverRig';
+import { TurnSignalLights, type VehicleLightsState } from './vehicle/TurnSignalLights';
 
 export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const group = useRef<THREE.Group>(null);
@@ -22,6 +23,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const rendered = useRef(createVehicle());
   const chair = useRef(wheelchairDock(createVehicle())), previousChair = useRef({...chair.current}), renderedChair = useRef({...chair.current});
   const cameraTarget = useRef(createVehicle());
+  const lights = useRef<VehicleLightsState>({ turn: 'off', braking: false });
   const accumulator = useRef(0);
   const uiTimer = useRef(0);
   const transfer = useRef(new PassengerTransfer());
@@ -37,6 +39,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
     if (appliedReset.current !== currentGame.resetKey) {
       appliedReset.current = currentGame.resetKey;
       Object.assign(s,createVehicle()); Object.assign(previous.current,s); Object.assign(rendered.current,s);
+      lights.current.turn = 'off'; lights.current.braking = false;
       accumulator.current = 0; uiTimer.current = 0;
       transfer.current.reset(); lastTransferRequest.current = currentGame.transferRequest;
       Object.assign(chair.current,wheelchairDock(s)); Object.assign(previousChair.current,chair.current); Object.assign(renderedChair.current,chair.current);
@@ -68,12 +71,15 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
         steer:controlsChanged ? 0 : Math.max(-1,Math.min(1,steer-touchController.InputSteer)),
         brake:controlsChanged || pressed.has('Space') || touchController.InputBrake>0,
       },s,STEP);
+      const throttle = Math.max(forward, touchController.InputThrottle) - Math.max(reverse, touchController.InputReverse);
+      const reversing = Math.max(reverse, touchController.InputReverse) > 0;
+      const steering = Math.max(-1, Math.min(1, steer - touchController.InputSteer));
+      const braking = pressed.has('Space') || touchController.InputBrake > 0;
       if (transfer.current.locked || lockInputsThisFrame) s.speed = 0;
-      else stepVehicle(s, {
-        throttle: Math.max(forward, touchController.InputThrottle) - Math.max(reverse, touchController.InputReverse),
-        steer: Math.max(-1, Math.min(1, steer - touchController.InputSteer)),
-        brake: pressed.has('Space') || touchController.InputBrake > 0,
-      });
+      else stepVehicle(s, { throttle, steer: steering, brake: braking });
+      const turning = transfer.current.phase === 'stowed' && !lockInputsThisFrame && Math.abs(s.speed) >= 0.5 && Math.abs(steering) >= 0.15;
+      lights.current.turn = turning ? steering > 0 ? 'left' : 'right' : 'off';
+      lights.current.braking = transfer.current.phase === 'stowed' && !lockInputsThisFrame && (braking || reversing);
       transfer.current.step(STEP);
       if (oldPhase !== transfer.current.phase) {
         useGame.getState().setTransferStatus(transfer.current.phase);
@@ -107,6 +113,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
     <VehicleCamera target={cameraTarget} parkedBus={rendered} />
     {lowDetail && <mesh position={[0, 0.125, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1, 1.65, 1]}><circleGeometry args={[1.55, 24]} /><meshBasicMaterial color="#344b41" transparent opacity={0.18} depthWrite={false} /></mesh>}
     <ServiceVanModel transfer={transfer} />
+    <TurnSignalLights state={lights} />
     <PassengerRig transfer={transfer} wheelchair={renderedChair} bus={rendered} />
     <DriverRig transfer={transfer} />
     <CaregiverRig transfer={transfer} wheelchair={renderedChair} bus={rendered} />

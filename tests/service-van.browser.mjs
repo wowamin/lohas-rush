@@ -24,7 +24,11 @@ export async function testServiceVan(browser, baseURL) {
     await page.locator('canvas').click({ position: { x: 700, y: 450 } });
     await page.waitForFunction(() => document.visibilityState === 'visible' && document.hasFocus());
     const speed = async () => Number(await page.locator('.speed-panel strong').innerText());
-    const pose = async () => (await page.locator('.map-vehicle').getAttribute('transform')).match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g).map(Number);
+    const pose = () => page.evaluate(async () => {
+      const { useGame } = await import('/src/stores/game.ts');
+      const { x, z, angle } = useGame.getState();
+      return [x, z, -angle * 180 / Math.PI];
+    });
     await page.keyboard.down('w'); await page.keyboard.down('a');
     await expect.poll(async () => Math.abs((await pose())[2]), { timeout: 10000 }).toBeGreaterThan(8);
     await page.keyboard.up('a'); await page.keyboard.up('w');

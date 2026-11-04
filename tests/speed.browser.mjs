@@ -5,6 +5,7 @@ export async function testHighSpeed(page) {
   await page.keyboard.press('r'); await page.waitForTimeout(250);
   const result = await page.evaluate(async () => {
     const { findRoadRoute } = await import('/src/data/roadNetwork.ts');
+    const { useGame } = await import('/src/stores/game.ts');
     const points = findRoadRoute('0-0', 'artery-south');
     const held = new Set();
     const key = (code, down) => {
@@ -16,12 +17,12 @@ export async function testHighSpeed(page) {
     const started = performance.now();
     try {
       while (performance.now() - started < 90000) {
-        const [x, z, degrees] = document.querySelector('.map-vehicle').getAttribute('transform').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g).map(Number);
+        const { x, z, angle } = useGame.getState();
         const speed = Number(document.querySelector('.speed-panel strong').textContent);
         peak = Math.max(peak, speed);
         if (peak > 85) return { peak, x, z };
         while (index < points.length - 1 && Math.hypot(x - points[index][0], z - points[index][1]) < 3.5) index++;
-        const [tx, tz] = points[index], angle = -degrees * Math.PI / 180;
+        const [tx, tz] = points[index];
         const desired = Math.atan2(-(tx - x), -(tz - z));
         const error = Math.atan2(Math.sin(desired - angle), Math.cos(desired - angle));
         const targetSpeed = Math.abs(error) > .45 ? 15 : index === points.length - 1 ? 120 : 30;

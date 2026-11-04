@@ -1,0 +1,75 @@
+.chihkan-model {
+  width: 100%;
+  min-width: 0;
+}
+
+.chihkan-model__viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 16px;
+  background: #20372f;
+}
+
+.chihkan-model__viewport iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.chihkan-model__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  color: #fffdf1;
+  font-size: 14px;
+}
+
+.chihkan-model__help {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.chihkan-model a,
+.chihkan-preview__back {
+  color: #315946;
+  text-underline-offset: 3px;
+}
+
+.chihkan-preview {
+  min-height: 100dvh;
+  padding: clamp(16px, 4vw, 48px);
+  background: #edf1e6;
+}
+
+.chihkan-preview__content {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.chihkan-preview h1 {
+  font-size: clamp(22px, 4vw, 32px);
+  letter-spacing: 1px;
+}
+
+.chihkan-preview__intro {
+  margin: 12px 0 24px;
+  line-height: 1.8;
+}
+
+.chihkan-preview__back {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 10px 0;
+}

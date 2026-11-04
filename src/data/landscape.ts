@@ -1,5 +1,6 @@
 import { CITY_LIMIT } from './roadNetwork.ts';
-export const river = { x: 90, halfWidth: 5, bridgeHalfWidth: 9, bridgeCenters: [0, 260] };
+import { expansionBridgeCenters } from './cityExpansion.ts';
+export const river = { x: 90, halfWidth: 5, bridgeHalfWidth: 9, bridgeCenters: [...expansionBridgeCenters, 0, 260].sort((a, b) => a - b) };
 export const mountains = [
   { x: -106, z: -94, radius: 14, height: 23, color: '#a6b8ac' },
   { x: -82, z: -108, radius: 12, height: 17, color: '#b7c6b2' },
