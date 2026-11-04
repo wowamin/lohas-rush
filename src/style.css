@@ -14,6 +14,10 @@
 .world-label small{display:block;font-size:9px;color:#7b8d80;margin-top:3px}
 .service-note{padding:10px;background:#eaf0e2;border-radius:8px;margin-top:10px}.service-note strong{font-size:10px}.service-note p{font-size:10px;line-height:1.7;margin:5px 0 0;color:#657a69}
 .route-map{position:absolute;right:34px;top:193px;width:240px;padding:16px;background:#fffdf1e8;border-radius:16px;pointer-events:none;color:#627962;box-shadow:0 8px 24px #304b3d12}.route-map>span{font-size:13px;font-weight:700}.route-map svg{display:block;width:100%;height:auto}.route-map small{font-size:9px}
+.route-map-toggle{position:absolute;top:6px;right:6px;z-index:1;pointer-events:auto;padding:5px 8px;font-size:9px;line-height:1.2;background:#fffdf1d9}
+.route-map.is-collapsed{width:156px;padding:8px;background:#fffdf18a;border:1px solid #fffdf4a8;backdrop-filter:blur(3px);box-shadow:0 4px 18px #304b3d14}
+.route-map.is-collapsed svg{padding-top:10px}
+.route-map.is-collapsed .route-map-toggle{top:4px;right:4px;background:#fffdf1a8}
 @media(any-pointer:coarse),(max-width:850px){
   html,body,#root,main{min-height:0}
   main{height:100dvh;overscroll-behavior:none}
@@ -37,7 +41,9 @@
   .speed-panel>div:not(.speed-track){gap:6px}.speed-panel small{display:none}.speed-track{margin-bottom:0}
   .drive-caption,footer{display:none}
   .route-map{display:block;z-index:10;right:max(12px,env(safe-area-inset-right));top:50%;transform:translateY(-50%);width:min(136px,36vw);padding:10px;background:#fffdf18a;border:1px solid #fffdf4a8;border-radius:12px;box-shadow:0 4px 18px #304b3d14;backdrop-filter:blur(3px);opacity:.88}
-  .route-map>span{font-size:9px}.route-map small{font-size:7px}
+  .route-map>span{font-size:9px}.route-map small{font-size:7px}.route-map-toggle{padding:4px 6px;font-size:8px}
+  .route-map.is-collapsed{width:min(116px,30vw);padding:6px}
+  .route-map.is-collapsed svg{padding-top:9px}
   .touch-controls{display:block;position:absolute;z-index:30;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));pointer-events:none}
   .touch-controls p{text-align:center;font-size:10px;color:#284c44;text-shadow:0 1px 3px #fff;margin:0 0 10px}
   .touch-buttons{display:grid;grid-template-columns:56px 56px 1fr 56px 56px 56px;gap:8px}
