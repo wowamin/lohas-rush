@@ -1,17 +1,10 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { CharacterGeometry, addCharacterFace, roundedCharacterBox, tailoredCharacterGeometry, type CharacterAdd } from '../characters/characterGeometry.ts';
 import type { DriverPose } from './driverAssistance.ts';
 
-function batch(build:(add:(shape:THREE.BufferGeometry,color:string,position:[number,number,number],scale?:[number,number,number],rotation?:[number,number,number])=>void)=>void) {
-  const colors=new Map<string,THREE.BufferGeometry[]>();
-  const add=(shape:THREE.BufferGeometry,color:string,p:[number,number,number],s:[number,number,number]=[1,1,1],r:[number,number,number]=[0,0,0])=>{
-    const geometry=shape.index?shape.toNonIndexed():shape.clone();shape.dispose();geometry.deleteAttribute('uv');
-    const transform=new THREE.Object3D();transform.position.set(...p);transform.scale.set(...s);transform.rotation.set(...r);transform.updateMatrix();geometry.applyMatrix4(transform.matrix);
-    const items=colors.get(color)??[];items.push(geometry);colors.set(color,items);
-  };
-  build(add);const group=new THREE.Group();
-  for(const [color,parts] of colors){const geometry=mergeGeometries(parts);parts.forEach(part=>part.dispose());const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.8}));mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);}
-  return group;
+function batch(build:(add:CharacterAdd)=>void) {
+  const geometry=new CharacterGeometry('#edb58b',['#343233','#695044','#48403b'],['#bac0c0','#b7c4ca']);
+  build(geometry.add);return geometry.finish();
 }
 
 // Geometry approximation of the supplied blue-uniform driver sheet; no image planes or tiny lettering.
@@ -19,17 +12,14 @@ export function createDriverModel() {
   const skin='#edb58b',navy='#34466f',blue='#65a8dc',dark='#343233',yellow='#efcb50';
   const root=new THREE.Group();root.name='driver-character';
   const torso=batch(add=>{
-    const box=(p:[number,number,number],s:[number,number,number],c:string)=>add(new THREE.BoxGeometry(...s),c,p);
-    const ball=(p:[number,number,number],r:number,c:string,s:[number,number,number]=[1,1,1])=>add(new THREE.IcosahedronGeometry(r,1),c,p,s);
-    box([0,.84,0],[.41,.43,.30],blue);box([0,.62,0],[.42,.065,.31],navy);box([0,.62,.164],[.10,.05,.014],'#bac0c0');
+    const box=(p:[number,number,number],s:[number,number,number],c:string)=>add(roundedCharacterBox(s),c,p);
+    const ball=(p:[number,number,number],r:number,c:string,s:[number,number,number]=[1,1,1])=>add(new THREE.SphereGeometry(r,20,14),c,p,s);
+    add(tailoredCharacterGeometry([[.625,.195,.142],[.68,.194,.146],[.76,.186,.14],[.87,.20,.147],
+      [.96,.214,.15],[1.013,.217,.132],[1.045,.16,.10],[1.055,.075,.068]]),blue);
+    box([0,.62,0],[.42,.065,.31],navy);box([0,.62,.164],[.10,.05,.014],'#bac0c0');
     for(const side of [-1,1])ball([side*.075,1.025,.14],.065,blue,[1,.55,.4]);
-    ball([0,1.28,.015],.242,skin,[1,1,.95]);ball([0,1.34,-.07],.225,dark,[1,1,.85]);
-    for(const side of [-1,1]){
-      ball([side*.242,1.27,.01],.05,skin);ball([side*.085,1.32,.222],.057,'#fff8ea',[1,1,.4]);
-      ball([side*.085,1.32,.243],.033,'#342f30',[1,1,.45]);ball([side*.075,1.333,.258],.011,'#ffffff');
-      ball([side*.13,1.21,.205],.03,'#df8c86',[1,.4,.3]);box([side*.09,1.397,.213],[.085,.025,.025],dark);
-    }
-    ball([0,1.25,.249],.033,skin);ball([0,1.165,.22],.061,'#8d3d3b',[1,.65,.35]);box([0,1.184,.246],[.074,.022,.012],'#fff7ea');
+    addCharacterFace(add,[0,1.28,.015],[.242,.242,.230],skin);
+    ball([0,1.34,-.07],.225,dark,[1,1,.85]);
     ball([0,1.50,-.015],.264,navy,[1,.56,1]);box([0,1.477,.235],[.43,.035,.25],navy);box([0,1.46,.35],[.43,.02,.027],yellow);
     box([0,1.54,.235],[.15,.063,.014],'#fff8e8');
     for(const x of [-.05,.05]){box([x,1.545,.245],[.043,.025,.009],navy);ball([x,1.505,.243],.014,'#fff8e8');}
@@ -37,19 +27,42 @@ export function createDriverModel() {
     ball([-.138,.919,.168],.017,'#c84d4d');ball([-.112,.919,.168],.017,'#c84d4d');
     box([0,.77,.176],[.105,.085,.022],navy);box([0,.774,.190],[.085,.060,.006],'#fff8e8');box([0,.78,.195],[.05,.024,.008],navy);
     for(const side of [-1,1])add(new THREE.CylinderGeometry(.009,.009,.23,5),navy,[side*.035,.91,.17],[1,1,1],[0,0,side*.3]);
+    // Collar seams, placket, buttons and an inset breast pocket.
+    box([0,.9,.157],[.017,.28,.012],'#4c8fbd');
+    for(const y of [.82,.9,.98])ball([0,y,.171],.008,'#fff8ee',[1,1,.45]);
+    box([.125,.887,.159],[.105,.115,.013],'#5798c7');
+    box([.125,.941,.169],[.109,.008,.01],'#a2cce8');
+    for(const side of [-1,1])box([side*.11,1.02,.167],[.10,.012,.012],'#a2cce8');
+    box([0,.84,-.15],[.005,.32,.006],'#5798c7');
+    box([0,1.0,-.141],[.28,.006,.006],'#5798c7');
+    // Subtle curved cap piping, with a smooth visor instead of a sharp slab.
+    const trim=new THREE.CatmullRomCurve3([new THREE.Vector3(-.195,1.48,.25),new THREE.Vector3(0,1.475,.355),new THREE.Vector3(.195,1.48,.25)]);
+    add(new THREE.TubeGeometry(trim,24,.004,6,false),yellow,[0,0,0]);
   });
   root.add(torso);
   const legs:THREE.Group[]=[],knees:THREE.Group[]=[],arms:THREE.Group[]=[],elbows:THREE.Group[]=[];
   for(const side of [-1,1]){
     const leg=new THREE.Group();leg.position.set(side*.125,.60,0);root.add(leg);legs.push(leg);
-    leg.add(batch(add=>{add(new THREE.BoxGeometry(.18,.27,.21),navy,[0,-.13,0]);add(new THREE.BoxGeometry(.035,.11,.15),navy,[side*.10,-.12,.01]);}));
+    leg.add(batch(add=>{add(tailoredCharacterGeometry([[-.265,.078,.09],[-.22,.082,.097],[-.10,.089,.104],[0,.087,.103]]),navy);
+      add(roundedCharacterBox([.035,.11,.15]),navy,[side*.10,-.12,.01]);
+    }));
     const knee=new THREE.Group();knee.position.y=-.27;leg.add(knee);knees.push(knee);
-    knee.add(batch(add=>{add(new THREE.BoxGeometry(.165,.26,.19),navy,[0,-.13,0]);add(new THREE.BoxGeometry(.19,.075,.29),navy,[0,-.235,.045]);add(new THREE.BoxGeometry(.20,.035,.30),'#eef0eb',[0,-.28,.045]);}));
+    knee.add(batch(add=>{add(tailoredCharacterGeometry([[-.255,.073,.085],[-.21,.076,.089],[-.10,.082,.095],[0,.080,.093]]),navy);
+      add(new THREE.SphereGeometry(.08,20,14),navy,[0,0,0],[1,1.05,1.16]);
+      add(roundedCharacterBox([.19,.075,.29],.45),navy,[0,-.235,.045]);add(roundedCharacterBox([.20,.035,.30],.45),'#eef0eb',[0,-.28,.045]);
+      for(const z of [.05,.085,.12])add(roundedCharacterBox([.10,.008,.012]),'#b7c4ca',[0,-.207,z]);
+    }));
     const arm=new THREE.Group();arm.position.set(side*.255,.99,0);root.add(arm);arms.push(arm);
-    arm.add(batch(add=>{add(new THREE.CylinderGeometry(.075,.067,.19,8),blue,[0,-.08,0]);}));
+    arm.add(batch(add=>{add(new THREE.CylinderGeometry(.075,.067,.19,20),blue,[0,-.08,0]);
+      add(new THREE.SphereGeometry(.073,20,14),blue,[0,.008,0],[1,.8,1]);
+      add(new THREE.CylinderGeometry(.068,.068,.014,20),'#a2cce8',[0,-.163,0]);
+    }));
     arm.name=side===1?'driver-arm-right':'driver-arm-left';
     const elbow=new THREE.Group();elbow.name=side===1?'driver-elbow-right':'driver-elbow-left';elbow.position.y=-.18;arm.add(elbow);elbows.push(elbow);
-    elbow.add(batch(add=>{add(new THREE.CylinderGeometry(.055,.05,.19,8),skin,[0,-.085,0]);add(new THREE.IcosahedronGeometry(.06,1),skin,[0,-.195,.008],[.8,1,.65]);}));
+    elbow.add(batch(add=>{add(new THREE.CylinderGeometry(.055,.05,.19,20),skin,[0,-.085,0]);add(new THREE.SphereGeometry(.06,24,18),skin,[0,-.195,.008],[.8,1,.65]);
+      add(new THREE.SphereGeometry(.053,20,14),skin,[0,0,0]);
+      for(let finger=0;finger<3;finger++)add(new THREE.SphereGeometry(.012,12,8),skin,[-.025+finger*.023,-.226,.028],[.7,1.8,.75]);
+    }));
   }
   return {root,torso,legs,knees,arms,elbows};
 }

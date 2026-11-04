@@ -50,10 +50,12 @@ buildings.forEach((b, index) => {
     box([b.x + position[0] * cos + position[2] * sin, position[1], b.z + position[2] * cos - position[0] * sin], size, color, rotation, owner);
   add([0, 0.16, 0], [b.halfX * 2 + 2, 0.3, b.halfZ * 2 + 2], '#e4dfcf');
   owner = b.shop ? b.id : undefined;
-  add([0, b.height / 2 + 0.3, 0], [b.halfX * 2, b.height, b.halfZ * 2], b.color);
-  add([0, b.height + 0.45, 0], [b.halfX * 2 + 0.5, 0.35, b.halfZ * 2 + 0.5], '#fcf4e2');
-  for (const x of [-0.55, 0, 0.55]) {
-    for (let y = 3; y < b.height; y += 3) add([x * b.halfX, y, b.halfZ + 0.03], [Math.min(1.6, b.halfX * 0.45), 1.5, 0.08], '#75989a');
+  if (b.id !== 'headquarters') {
+    add([0, b.height / 2 + 0.3, 0], [b.halfX * 2, b.height, b.halfZ * 2], b.color);
+    add([0, b.height + 0.45, 0], [b.halfX * 2 + 0.5, 0.35, b.halfZ * 2 + 0.5], '#fcf4e2');
+    for (const x of [-0.55, 0, 0.55]) {
+      for (let y = 3; y < b.height; y += 3) add([x * b.halfX, y, b.halfZ + 0.03], [Math.min(1.6, b.halfX * 0.45), 1.5, 0.08], '#75989a');
+    }
   }
   if (b.shop) {
     add([0, 1.4, b.halfZ + 0.05], [1.4, 2.2, 0.1], '#78999b');
