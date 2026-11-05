@@ -23,10 +23,8 @@ export const buildings: Building[] = [
 export const fountain = { x: 8, z: 0, radius: 6 };
 const headquarters = buildings.find(building => building.id === 'headquarters')!;
 export const chairperson = { x: headquarters.x + 1.85, y: .31, z: headquarters.z + headquarters.halfZ + .55, halfX: .6, halfZ: .3, kind: 'npc' };
-export const birthdayCake = { x: headquarters.x - 2.7, z: headquarters.z + headquarters.halfZ + 1.06, halfX: .81, halfZ: .81, kind: 'birthday-cake' };
 export const obstacles: Obstacle[] = [
   chairperson,
-  birthdayCake,
   ...buildings.map(({ x, z, halfX, halfZ }) => ({ x, z, halfX, halfZ, kind: 'building' })),
   { x: fountain.x, z: fountain.z, halfX: fountain.radius, halfZ: fountain.radius, kind: 'fountain' },
   ...landscapeObstacles,

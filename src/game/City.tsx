@@ -7,9 +7,7 @@ import { StaticScenery } from './StaticScenery';
 import { NavigationRoute } from './NavigationRoute';
 import { mountains } from '../data/landscape';
 import { ChairpersonNPC } from './characters/ChairpersonNPC';
-import { HeadquartersBanner } from './HeadquartersBanner';
 import { HeadquartersBuilding } from './HeadquartersBuilding';
-import { BirthdayCake } from './BirthdayCake';
 import { DaiheCenterBuilding } from './DaiheCenterBuilding';
 import { AnnanCenterBuilding } from './AnnanCenterBuilding';
 import { XinyingCenterBuilding } from './XinyingCenterBuilding';
@@ -27,9 +25,7 @@ export function City() {
     <DaiheCenterBuilding />
     <AnnanCenterBuilding />
     <XinyingCenterBuilding />
-    <BirthdayCake />
     <ChairpersonNPC />
-    <HeadquartersBanner />
     <StreamedAssets onShopsChanged={setHiddenShops} />
     <NavigationRoute />
     {mountains.map(m => <mesh key={`${m.x},${m.z}`} position={[m.x, m.height / 2, m.z]} castShadow><coneGeometry args={[m.radius, m.height, 6]} /><meshStandardMaterial color={m.color} flatShading /></mesh>)}

@@ -6,6 +6,18 @@
 
 ## 快速開始
 
+### 獨立入口：樂活長照城市
+
+`public/care-city/index.html` 是獨立的 Low-Poly 3D 互動服務城市，不取代首頁駕駛遊戲。啟動開發伺服器後，開啟 `/care-city/index.html`；GitHub Pages 建置後的入口為 `/lohas-rush/care-city/index.html`。這次僅產出本機檔案，未執行部署。
+
+單一 HTML 內含完整 CSS、36 筆單位 JSON、Three.js 0.175.0、OrbitControls、GSAP 3.13.0、FontAwesome Free 6.7.2 的 SVG 圖示與場景程式碼，直接開啟檔案也能運作。Google Noto Sans TC 為選用網路字型，無網路時使用系統中文字型。引擎與圖示不依賴 CDN，授權聲明保留於內嵌程式碼。
+
+可使用分類、搜尋或建築點擊來聚焦；總部與 1F 現煮食為同棟垂直分層，資訊抽屜提供樓層切換。城市包含 5 間日照、12 間住宿機構、居家與 8 個醫院看護網絡節點，以及壹吉棒、大心復康巴士。巴士與現煮食車輛沿示意道路巡行，可暫停；支援鍵盤清單、減少動態偏好與 WebGL 不可用時的資訊備援。
+
+據點位置、道路及車隊路線為示意；醫院網絡依提供名單呈現，特約現況仍須確認。未提供的地址、電話與服務區域均標示待確認，不建立虛構聯絡方式。此獨立示意頁不改變遊戲的世界座標、碰撞與五站任務。
+
+驗證：`npm run build`，以及在開發伺服器啟動後執行 `node tests/care-city.browser.mjs`（預設埠 5191，可用 `TEST_CARE_CITY_URL` 指定完整網址）。Chrome 測試涵蓋分類數量、搜尋、總部分層、Raycaster 點擊、旋轉拖曳、車隊暫停、390px 手機版、離線直接開啟 HTML、減少動態與 WebGL 備援。
+
 需要 Node.js 24 以上，以及支援 WebGL 2 的瀏覽器。
 
 ```sh
