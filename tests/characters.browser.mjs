@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -8,7 +9,7 @@ await mkdir('.test-artifacts', { recursive: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1800, height: 900 } });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto(process.env.TEST_BASE_URL || 'http://127.0.0.1:5173/');
+  await page.goto(process.env.TEST_BASE_URL || 'http://127.0.0.1:5173/'); await dismissDrivingGuide(page);
   await expect.poll(() => page.evaluate(async () => {
     const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
     return !!_roots.get(document.querySelector('canvas'))?.store.getState().scene.getObjectByName('driver-character');

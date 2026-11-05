@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
@@ -23,7 +24,7 @@ export async function testModelAssets(browser, baseURL) {
     requested.add(new URL(route.request().url()).pathname.split('/').at(-1));
     await route.fulfill({ contentType: 'model/gltf-binary', body: fixtureGLB() });
   });
-  await page.goto(baseURL); await page.locator('canvas').waitFor();
+  await page.goto(baseURL); await dismissDrivingGuide(page); await page.locator('canvas').waitFor();
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
   await expect.poll(() => requested.size, { timeout: 15000 }).toBe(4);
   assert.equal(requested.size, 4, 'app preloads all four models');

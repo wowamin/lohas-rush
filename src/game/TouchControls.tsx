@@ -12,7 +12,6 @@ const controls: { action: TouchAction; label: string; symbol: string }[] = [
 
 export function TouchControls() {
   const outside=useGame(s=>s.transferPhase==='outside');
-  const resetKey = useGame(s => s.resetKey);
   const [pressed, setPressed] = useState<Record<number, TouchAction>>({});
   const [joystick, setJoystick] = useState<{ pointerId: number; x: number } | null>(null);
   const joystickRef = useRef<HTMLButtonElement>(null);
@@ -21,17 +20,20 @@ export function TouchControls() {
     const visibility = () => { if (document.hidden) clear(); };
     const query = window.matchMedia('(any-pointer: coarse), (max-width: 850px)');
     const modeChanged = () => { if (!query.matches) clear(); };
+    const unsubscribe = useGame.subscribe((state, previous) => {
+      if (state.resetKey !== previous.resetKey || (state.controlsPaused && !previous.controlsPaused) || (state.transferPhase === 'outside') !== (previous.transferPhase === 'outside')) clear();
+    });
     window.addEventListener('blur', clear);
     document.addEventListener('visibilitychange', visibility);
     query.addEventListener('change', modeChanged);
     clear();
     return () => {
-      touchController.clear();
+      unsubscribe(); touchController.clear();
       window.removeEventListener('blur', clear);
       document.removeEventListener('visibilitychange', visibility);
       query.removeEventListener('change', modeChanged);
     };
-  }, [resetKey,outside]);
+  }, []);
 
   const release = (pointerId: number) => {
     touchController.release(pointerId);

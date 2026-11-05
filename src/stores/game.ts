@@ -5,6 +5,7 @@ import { SPAWN } from '../data/roadNetwork.ts';
 import type { CameraMode } from '../game/camera/virtualCameras.ts';
 import type { TransferPhase } from '../game/vehicle/passengerTransfer.ts';
 type State = {
+  controlsPaused: boolean; setControlsPaused: (paused:boolean)=>void;
   speed: number; distance: number; missionIndex: number; completed: boolean; resetKey: number;
   x: number; z: number; angle: number;
   cameraMode: CameraMode; cycleCamera: () => void;
@@ -16,6 +17,7 @@ type State = {
   visitPosition: (x: number, z: number) => void; reset: () => void;
 };
 export const useGame = create<State>(set => ({
+  controlsPaused:false, setControlsPaused:controlsPaused=>set({controlsPaused}),
   speed: 0, distance: 0, missionIndex: 0, completed: false, resetKey: 0,
   x: SPAWN.x, z: SPAWN.z, angle: SPAWN.angle,
   cameraMode: 'chase', cycleCamera: () => set(s => ({ cameraMode: s.cameraMode === 'chase' ? 'overview' : 'chase' })),

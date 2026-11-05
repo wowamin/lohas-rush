@@ -1,12 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { useGame } from '../../stores/game';
+import { touchController } from './touchController';
 const controlled = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyC', 'KeyE'];
-export function useDrivingInput(resetKey: number) {
+export function useDrivingInput() {
   const keys = useRef(new Set<string>());
-  useEffect(() => { keys.current.clear(); }, [resetKey]);
   useEffect(() => {
     const clear = () => keys.current.clear();
+    clear();
+    // Clear at the reset action itself. A later effect/frame must not erase
+    // fresh input that arrived after R but before the next simulation step.
+    const unsubscribe = useGame.subscribe((state, previous) => {
+      if (state.resetKey !== previous.resetKey || (state.controlsPaused && !previous.controlsPaused)) { clear(); touchController.clear(); }
+    });
     const down = (event: KeyboardEvent) => {
+      if (useGame.getState().controlsPaused) return;
       if (event.target instanceof HTMLElement) {
         if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         // Preserve Space activation for focused buttons; driving keys still work after restart.
@@ -23,7 +30,7 @@ export function useDrivingInput(resetKey: number) {
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     window.addEventListener('blur', clear); document.addEventListener('visibilitychange', visibility);
     return () => {
-      clear(); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up);
+      unsubscribe(); clear(); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up);
       window.removeEventListener('blur', clear); document.removeEventListener('visibilitychange', visibility);
     };
   }, []);

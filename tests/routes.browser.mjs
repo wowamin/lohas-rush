@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -8,7 +9,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.text().startsWith('ROUTE:')) console.log(message.text()); });
-  await page.goto(baseURL);
+  await page.goto(baseURL); await dismissDrivingGuide(page);
   await page.bringToFront();
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
   const expected = await page.evaluate(async () => {
@@ -41,7 +42,11 @@ try {
         const state = read();
         if (performance.now() - lastLog > 15000) { console.log(`ROUTE: pose ${state.x.toFixed(1)},${state.z.toFixed(1)} speed ${state.speed} waypoint ${index}`); lastLog = performance.now(); }
         if (state.missionIndex !== mission || state.completed) {
-          if (mission >= 0) visited.push(locations[mission].shortName);
+          if (mission >= 0) {
+            visited.push(locations[mission].shortName);
+            if(!document.querySelector('.arrival-note')?.textContent.includes(locations[mission].name))
+              throw new Error('抵達後 HUD 未顯示對應站名');
+          }
           if (state.completed) return { completed: true, visited, seconds: (performance.now() - started) / 1000 };
           mission = state.missionIndex;
           console.log(`ROUTE: driving to ${locations[mission].shortName}`);
@@ -81,11 +86,20 @@ try {
   });
   assert.equal(outcome.completed, true, JSON.stringify(outcome));
   assert.deepEqual(outcome.visited, expected.names);
-  await expect(page.locator('.mission-summary strong')).toHaveText('旅程完成');
+  await expect(page.locator('.mission-summary strong')).toHaveText('五站任務完成');
+  await page.keyboard.down('Space');
+  await expect.poll(()=>page.locator('.speed-panel strong').innerText().then(Number),{timeout:15000}).toBe(0);
+  await page.keyboard.up('Space');
+  // Verify the real transfer sequence after stopping at the fifth destination.
+  await page.keyboard.press('e');
+  await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:30000});
+  await page.keyboard.press('e');
+  await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:30000});
+  await expect(page.locator('.mission-summary strong')).toHaveText('五站任務完成');
   await mkdir('.test-artifacts', { recursive: true });
   await page.screenshot({ path: '.test-artifacts/five-centers-completed.png' });
   await page.keyboard.press('r');
-  await expect(page.locator('.mission-summary strong')).toHaveText(expected.first);
+  await expect(page.locator('.mission-summary strong')).toHaveText(`下一站：${expected.first}`);
   await expect(page.locator('.route-stop.visited')).toHaveCount(0);
   await page.waitForTimeout(250);
   // Drive into the fountain's collision boundary, then reverse away through actual keys.

@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
@@ -6,7 +7,7 @@ await mkdir('.test-artifacts',{recursive:true});
 try{
   const page=await browser.newPage({viewport:{width:850,height:720}}),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
-  await page.goto(process.env.TEST_BASE_URL||'http://127.0.0.1:5173/');await page.bringToFront();
+  await page.goto(process.env.TEST_BASE_URL||'http://127.0.0.1:5173/'); await dismissDrivingGuide(page);await page.bringToFront();
   await page.locator('.target-label').filter({hasText:'大和'}).waitFor();
   const result=await page.evaluate(async()=>{
     const {findRoadRoute}=await import('/src/data/roadNetwork.ts');

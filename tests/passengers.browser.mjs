@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -10,7 +11,7 @@ try {
     const page = await browser.newPage(fallback ? {viewport:{width:390,height:844},isMobile:true,hasTouch:true} : {viewport:{width:1280,height:800}});
     const errors = []; page.on('pageerror',error=>errors.push(error.message));
     if (fallback) await page.route('**/lohas_service_van.glb',route=>route.abort());
-    await page.goto(baseURL); await page.locator('.passenger-panel').waitFor();
+    await page.goto(baseURL); await dismissDrivingGuide(page); await page.locator('.passenger-panel').waitFor();
     await page.bringToFront();
     const sceneState = async () => page.evaluate(async () => {
       const {_roots} = await import('/node_modules/.vite/deps/@react-three_fiber.js');

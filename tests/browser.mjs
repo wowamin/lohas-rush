@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -14,7 +15,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(baseURL);
+  await page.goto(baseURL); await dismissDrivingGuide(page);
   await page.bringToFront();
   await page.locator('canvas').waitFor();
   await page.locator('.target-label').filter({ hasText: '大和' }).waitFor();
@@ -127,12 +128,12 @@ try {
       return type === 'webgl2' || type === 'webgl' ? null : original.call(this, type, ...args);
     };
   });
-  await unsupported.goto(baseURL);
+  await unsupported.goto(baseURL); await dismissDrivingGuide(unsupported);
   await unsupported.getByRole('heading', { name: '暫時無法啟動 3D 城市' }).waitFor();
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   mobile.on('pageerror', error => errors.push(error.message));
-  await mobile.goto(baseURL);
+  await mobile.goto(baseURL); await dismissDrivingGuide(mobile);
   await mobile.locator('.target-label').filter({ hasText: '大和' }).waitFor();
   const mobileSpeed = () => mobile.locator('.speed-panel strong').innerText().then(Number);
   const cdp = await mobile.context().newCDPSession(mobile);
@@ -197,10 +198,11 @@ try {
 
   for (const [width, height, name] of [[390, 844, 'portrait'], [844, 390, 'landscape'], [320, 568, 'small']]) {
     await mobile.setViewportSize({ width, height });
-    const bounds = await mobile.locator('.touch-button, .touch-joystick, .mission-panel, .speed-panel, .camera-switch').evaluateAll(elements =>
-      elements.map(element => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom }; }));
+    await expect.poll(async()=>{const r=await mobile.locator('.mission-panel').boundingBox();return Math.abs(r.x+r.width);}).toBeLessThan(1);
+    const bounds = await mobile.locator('.touch-button, .touch-joystick, .mission-panel:not(.is-collapsed), .mission-toggle, .destination-strip, .speed-panel, .camera-switch').evaluateAll(elements =>
+      elements.filter(element=>element.checkVisibility()).map(element => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom }; }));
     for (const box of bounds) assert.ok(box.x >= 0 && box.y >= 0 && box.right <= width && box.bottom <= height, `${name} UI stays inside viewport`);
-    const mission = await mobile.locator('.mission-panel').boundingBox();
+    const mission = await mobile.locator('.mission-panel.is-collapsed .mission-toggle, .mission-panel:not(.is-collapsed)').boundingBox();
     // The controls now use a transparent full-viewport positioning container.
     // Compare actual interactive controls, not their full-screen parent.
     const controls = await mobile.locator('.touch-button, .touch-joystick').evaluateAll(elements => elements.map(element => {

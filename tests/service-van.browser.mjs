@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
@@ -7,7 +8,7 @@ export async function testServiceVan(browser, baseURL) {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     if (mode === 'fallback') await page.route('**/lohas_service_van.glb', route => route.abort());
     const loaded = mode === 'ready' ? page.waitForResponse(response => response.url().endsWith('/lohas_service_van.glb') && response.status() === 200) : undefined;
-    await page.goto(baseURL); await page.locator('.map-vehicle').waitFor(); if (loaded) await loaded;
+    await page.goto(baseURL); await dismissDrivingGuide(page); await page.locator('.map-vehicle').waitFor(); if (loaded) await loaded;
     // Read the existing R3F root for model assertions; never modify vehicle physics or task state.
     await page.waitForFunction(async expected => {
       const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');

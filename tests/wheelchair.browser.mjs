@@ -1,3 +1,4 @@
+import {dismissDrivingGuide} from './browser-support.mjs';
 import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -9,7 +10,7 @@ try {
     const page=await browser.newPage(mobile?{viewport:{width:390,height:844},isMobile:true,hasTouch:true}:{viewport:{width:1280,height:800}});
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     if(mobile) await page.route('**/lohas_service_van.glb',route=>route.abort());
-    await page.goto(baseURL);await page.locator('.transfer-button').waitFor();await page.bringToFront();
+    await page.goto(baseURL); await dismissDrivingGuide(page);await page.locator('.transfer-button').waitFor();await page.bringToFront();
     await page.waitForFunction(async()=>{
       const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');
       return _roots.get(document.querySelector('canvas'))?.store.getState().scene.getObjectByName('caregiver-helper')?.userData.onboard===true;
@@ -93,6 +94,8 @@ try {
     }
     await hold('forward');await expect.poll(async()=>(await read()).chair[2],{timeout:14000}).toBeLessThan(2.75);
     await expect.poll(async()=>Number(await page.locator('.speed-panel strong').innerText()),{timeout:6000}).toBe(0);await release('forward');
+    // Let the rendered pose finish interpolating after the collision stop.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const contact=await read();assert.ok(contact.chair[2]>=2.65-1e-6,'wheelchair stops before parked bus');assert.deepEqual(contact.bus,initial.bus);
     await hold('left');await page.waitForTimeout(500);await release('left');
     const turned=await read();assert.ok(Math.abs(turned.yaw-contact.yaw)>.2);assert.deepEqual(turned.chair,contact.chair,'chair turns in place');
@@ -102,11 +105,12 @@ try {
     // Return using only keyboard events and the same low-frequency telemetry as the map.
     const arrived=await page.evaluate(async()=>{
       const held=new Set();
+      const {useGame}=await import('/src/stores/game.ts');
       const read=()=>{
-        const numbers=value=>value.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g).map(Number);
-        const [x,z,degrees]=numbers(document.querySelector('.map-vehicle').getAttribute('transform'));
-        const [busX,busZ]=numbers(document.querySelector('.parked-bus').getAttribute('transform'));
-        return {x,z,angle:-degrees*Math.PI/180,parkedBusX:busX,parkedBusZ:busZ};
+        // GPS now uses an unrotated position dot. Read heading from the same
+        // public telemetry, rather than parsing a removed SVG rotation.
+        const {x,z,angle,parkedBusX,parkedBusZ}=useGame.getState();
+        return {x,z,angle,parkedBusX,parkedBusZ};
       };
       const key=(code,down)=>{if(held.has(code)===down)return;if(down)held.add(code);else held.delete(code);window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{code,bubbles:true,cancelable:true}));};
       const started=performance.now();

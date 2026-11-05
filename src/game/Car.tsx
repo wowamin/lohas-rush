@@ -29,8 +29,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const transfer = useRef(new PassengerTransfer());
   const lastTransferRequest = useRef(0);
   const appliedReset = useRef(useGame.getState().resetKey);
-  const resetKey = useGame(s => s.resetKey);
-  const keys = useDrivingInput(resetKey);
+  const keys = useDrivingInput();
   useFrame((_, delta) => {
     const s = state.current;
     const currentGame = useGame.getState();
@@ -43,7 +42,11 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
       accumulator.current = 0; uiTimer.current = 0;
       transfer.current.reset(); lastTransferRequest.current = currentGame.transferRequest;
       Object.assign(chair.current,wheelchairDock(s)); Object.assign(previousChair.current,chair.current); Object.assign(renderedChair.current,chair.current);
-      keys.current.clear(); touchController.clear();
+    }
+    if (currentGame.controlsPaused) {
+      keys.current.clear(); touchController.clear(); accumulator.current=0;
+      if(group.current){group.current.position.set(rendered.current.x,0,rendered.current.z);group.current.rotation.y=rendered.current.angle;}
+      return;
     }
     const dt = Math.min(delta, 0.1);
     const pressed = keys.current;

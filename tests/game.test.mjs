@@ -387,7 +387,7 @@ test('top-speed approaches cannot tunnel through buildings or city limits; rever
 });
 
 test('five arrival zones and every ring/radial road have full vehicle clearance', () => {
-  assert.deepEqual(locations.map(l => l.shortName), ['永春大和', '樂活安南', '七股龍山', '七股義合', '樂活新營']);
+  assert.deepEqual(locations.map(l => l.shortName), ['永春大和', '樂活安南', '樂活七股龍山', '樂活七股義合', '樂活新營']);
   assert.equal(collides(SPAWN.x, SPAWN.z), false);
   for (const location of locations) {
     assert.equal(collides(...location.arrival), false);

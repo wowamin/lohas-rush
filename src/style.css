@@ -67,4 +67,25 @@
 .transfer-button:hover:not(:disabled){background:#2f5e4c;color:#fff8e2}
 
 canvas.is-orbiting{cursor:grabbing}@media(any-pointer:coarse){.mouse-look-hint{display:none}}
+.brand small.brand-subtitle{letter-spacing:.5px;font-size:10px;line-height:1.5}
+.journey-intro{font-size:12px;line-height:1.8;color:#526b5b;margin:12px 0}
+.scenario-note{font-size:11px;line-height:1.8;color:#65745e;background:#edf0e1;border-radius:7px;padding:9px;margin:10px 0 18px}
+.objective .arrival-note{color:#466b50;margin:8px 0}
+#mission-details:not([hidden]){max-height:max(100px,calc(100dvh - 570px))}
+.objective{margin-bottom:18px}
+@media(any-pointer:coarse),(max-width:850px){.brand small.brand-subtitle{font-size:8px;letter-spacing:0}.journey-intro{font-size:11px;line-height:1.7;margin:10px 0}.scenario-note{font-size:10px;line-height:1.7;margin:8px 0;padding:7px}#mission-details:not([hidden]){max-height:max(70px,calc(100dvh - 400px))}.objective .mission-guidance{display:block;font-size:11px;line-height:1.7}}
+@media(max-height:500px) and (orientation:landscape){#mission-details:not([hidden]){max-height:80px}.objective .mission-guidance{display:block}}
 @media(min-width:851px){.route-map:not(.is-collapsed) .map-vehicle-dot{r:10pt;stroke:none}}
+.header-actions{display:flex;align-items:center;gap:10px;pointer-events:auto}.guide-help{background:#fffdf1ed;min-height:44px;font-size:12px}.destination-strip{display:none}
+.driving-guide{color:#284c44;background:#fffdf4;width:min(600px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;border:1px solid #e0e4d5;border-radius:20px;padding:28px;box-shadow:0 24px 80px #183a3840}.driving-guide::backdrop{background:#183a3877;backdrop-filter:blur(3px)}.driving-guide h2{font-size:24px;line-height:1.5;margin:12px 0}.driving-guide h3{font-size:16px;margin:22px 0 12px}.driving-guide p{font-size:15px;line-height:1.8}.guide-steps{list-style:none;padding:0;counter-reset:guide;display:grid;gap:14px}.guide-steps li{counter-increment:guide;position:relative;padding-left:43px}.guide-steps li:before{content:counter(guide);position:absolute;left:0;top:0;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#dfe8d7;color:#315946;font-weight:700}.guide-steps strong{display:block;font-size:16px;margin-bottom:4px}.guide-steps span{font-size:14px;line-height:1.8;display:block}.guide-tools{color:#526b5b}.guide-actions{display:flex;gap:12px;margin:22px 0 14px}.guide-actions button{min-height:48px;flex:1;font-size:16px}.guide-actions .guide-start{background:#386d58;color:#fffdf1;border-color:#386d58}.driving-guide>small{display:block;font-size:12px;line-height:1.8;color:#627962}
+@media(any-pointer:coarse),(max-width:850px){
+ .header-actions{gap:6px}.header-actions .city-tag{display:none}.guide-help{font-size:11px;padding:7px 10px;min-height:40px}
+ .mission-panel{width:min(235px,calc(100% - 176px))}
+ .destination-strip{position:absolute;z-index:19;top:calc(78px + env(safe-area-inset-top));left:max(60px,calc(60px + env(safe-area-inset-left)));right:max(12px,env(safe-area-inset-right));display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:#fffdf1eb;box-shadow:0 4px 16px #304b3d18;pointer-events:none}
+ .destination-strip>div{min-width:0;flex:1}.destination-strip strong{display:block;font-size:12px;line-height:1.6}.destination-strip span,.destination-strip small{font-size:10px;line-height:1.6;display:block;color:#627962}.destination-strip button{min-height:40px;padding:6px 8px;font-size:11px;pointer-events:auto}
+ .mission-panel:not(.is-collapsed)~.destination-strip{display:none}
+ .driving-guide{padding:20px}.driving-guide h2{font-size:21px}.driving-guide p{font-size:14px}.guide-steps span{font-size:13px}
+}
+@media(max-height:500px) and (orientation:landscape){.destination-strip{top:calc(65px + env(safe-area-inset-top));right:160px}#mission-details:not([hidden]){max-height:55px}.driving-guide{max-height:calc(100dvh - 20px);padding:18px 24px}.driving-guide h2{font-size:20px}.guide-actions{margin:14px 0}.driving-guide h3{margin-top:14px}}
+@media(max-width:360px) and (orientation:portrait){.route-map{top:47%}}
+@media(any-pointer:coarse) and (orientation:landscape),(max-width:850px) and (orientation:landscape){.speed-panel{bottom:calc(20px + env(safe-area-inset-bottom))}.mission-panel{width:min(235px,calc(50vw - 33px))}.mission-panel:not(.is-collapsed)~.speed-panel{left:calc(50vw - 17px)}}
