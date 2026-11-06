@@ -4,10 +4,10 @@ import {createWriteStream} from 'node:fs';
 
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5173/';
 if(!(await fetch(base)).ok)throw new Error('請先啟動 npm run dev，並用 TEST_BASE_URL 指向該伺服器。');
-const app=await(await fetch(new URL('src/App.tsx',base))).text();
-if(/stores\/game\.ts\?t=/.test(app))throw new Error('偵測到 Vite 熱更新模組版本。請重新啟動 dev server，避免畫面與測試使用不同的狀態實例，再執行完整驗收。');
-const suites=['input.browser.mjs','onboarding.browser.mjs','browser.mjs','wheelchair.browser.mjs','passengers.browser.mjs','orbit.browser.mjs','expansion.browser.mjs','vehicle.browser.mjs','turn-signals.browser.mjs','pedestrian-street.browser.mjs','characters.browser.mjs','chairperson.browser.mjs','care-city.browser.mjs','routes.browser.mjs'];
-const folder='.test-artifacts/v01-acceptance';await mkdir(folder,{recursive:true});
+const sources=await Promise.all(['src/App.tsx','src/game/Car.tsx','src/components/ExplorationJournal.tsx'].map(async path=>(await fetch(new URL(path,base))).text()));
+if(sources.some(source=>/stores\/(?:game|exploration)\.ts\?t=/.test(source)))throw new Error('偵測到 Vite 熱更新模組版本。請重新啟動 dev server，避免畫面與測試使用不同的狀態實例，再執行完整驗收。');
+const suites=['input.browser.mjs','onboarding.browser.mjs','exploration.browser.mjs','browser.mjs','wheelchair.browser.mjs','passengers.browser.mjs','orbit.browser.mjs','expansion.browser.mjs','vehicle.browser.mjs','turn-signals.browser.mjs','pedestrian-street.browser.mjs','characters.browser.mjs','chairperson.browser.mjs','care-city.browser.mjs','routes.browser.mjs'];
+const folder=process.env.TEST_REPORT_DIR||'.test-artifacts/v02a-acceptance';await mkdir(folder,{recursive:true});
 const retry=process.argv.includes('--retry-failed');
 const previous=retry?JSON.parse(await readFile(folder+'/results.json','utf8')):[];
 const results=previous.filter(r=>r.status==='passed');

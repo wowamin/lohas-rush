@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useGame } from '../../stores/game';
 import { touchController } from './touchController';
-const controlled = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyC', 'KeyE'];
+const drivingCodes=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+const controlled = [...drivingCodes, 'Space', 'KeyR', 'KeyC', 'KeyE'];
 export function useDrivingInput() {
   const keys = useRef(new Set<string>());
   useEffect(() => {
@@ -16,6 +17,9 @@ export function useDrivingInput() {
       if (useGame.getState().controlsPaused) return;
       if (event.target instanceof HTMLElement) {
         if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        // Starting to drive leaves toolbar focus behind, so the next Space
+        // brakes instead of activating the journal/help/reset button.
+        if(drivingCodes.includes(event.code))event.target.closest('button')?.blur();
         // Preserve Space activation for focused buttons; driving keys still work after restart.
         if (event.code === 'Space' && event.target.closest('button')) return;
       }

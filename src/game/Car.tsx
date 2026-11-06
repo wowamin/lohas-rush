@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { locations } from '../data/city';
@@ -15,6 +15,7 @@ import { wheelchairDock, wheelchairLocal, stepWheelchair } from './vehicle/wheel
 import { DriverRig } from './vehicle/DriverRig';
 import { CaregiverRig } from './vehicle/CaregiverRig';
 import { TurnSignalLights, type VehicleLightsState } from './vehicle/TurnSignalLights';
+import { explorationStore } from '../stores/exploration';
 
 export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const group = useRef<THREE.Group>(null);
@@ -30,6 +31,10 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const lastTransferRequest = useRef(0);
   const appliedReset = useRef(useGame.getState().resetKey);
   const keys = useDrivingInput();
+  useEffect(()=>explorationStore.getState().bindPlayer(()=>{
+    const phase=transfer.current.phase,active=phase==='outside'?chair.current:state.current;
+    return {x:active.x,z:active.z,speed:active.speed,available:phase==='stowed'||phase==='outside'};
+  }),[]);
   useFrame((_, delta) => {
     const s = state.current;
     const currentGame = useGame.getState();
@@ -109,6 +114,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
       game.setTelemetry(Math.round(Math.abs(active.speed) * 3.6), Math.round(Math.hypot(active.x - destination.arrival[0], active.z - destination.arrival[1])), active.x, active.z, active.angle);
       const dock=wheelchairDock(s);
       game.setBoardingTelemetry(Math.hypot(chair.current.x-dock.x,chair.current.z-dock.z),s.x,s.z);
+      explorationStore.getState().observe();
       uiTimer.current = 0;
     }
   }, -2);

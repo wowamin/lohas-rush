@@ -11,6 +11,7 @@ import { locations } from './data/city';
 import { selectVirtualCamera } from './game/camera/virtualCameras';
 import { useGame } from './stores/game';
 import { DrivingGuide, needsDrivingGuide } from './components/DrivingGuide';
+import { ExplorationJournal, ExplorationNotices } from './components/ExplorationJournal';
 
 function supported() {
   try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; }
@@ -32,7 +33,7 @@ function CameraSwitch() {
   return <button type="button" className="camera-switch" disabled={servicing} onClick={event => { cycle(); if (event.detail > 0) event.currentTarget.blur(); }} aria-label={outside ? '奶奶輪椅跟隨鏡頭' : servicing ? '接送視角，收妥後可切換鏡頭' : `切換鏡頭，目前為${label}`} title={outside ? '輪椅模式自動跟隨' : servicing ? '接送完成後可切換' : '切換跟車／高視角（C）'}>鏡頭：{label}</button>;
 }
 
-function HUD({touch, onHelp}:{touch:boolean;onHelp:()=>void}) {
+function HUD({touch, onHelp, onJournal}:{touch:boolean;onHelp:()=>void;onJournal:()=>void}) {
   const [missionCollapsed, setMissionCollapsed] = useState(touch);
   const speed = useGame(s => s.speed);
   const phase = useGame(s => s.transferPhase);
@@ -56,7 +57,7 @@ function HUD({touch, onHelp}:{touch:boolean;onHelp:()=>void}) {
           ? '已接近目的地。慢慢駛入金色圓環，即可記錄抵達並更新下一站。'
           : locations[mission].description;
   return <>
-    <header><a className="brand" href="./"><span className="brand-mark">樂</span><div><h1>樂活狂飆</h1><small className="brand-subtitle">LOHAS RUSH</small></div></a><div className="header-actions"><div className="city-tag"><i /> 虛構城市・遊戲情境 <span>V0.1</span></div><button type="button" className="guide-help" onClick={onHelp}>操作說明</button></div></header>
+    <header><a className="brand" href="./"><span className="brand-mark">樂</span><div><h1>樂活狂飆</h1><small className="brand-subtitle">LOHAS RUSH</small></div></a><div className="header-actions"><div className="city-tag"><i /> 虛構城市・遊戲情境 <span>V0.2-A</span></div><button type="button" className="guide-help journal-toggle" onClick={onJournal}>探索日記</button><button type="button" className="guide-help" onClick={onHelp}>操作說明</button></div></header>
     <aside className={`mission-panel${missionCollapsed ? ' is-collapsed' : ''}`} aria-label="服務路線">
       <div className="mission-summary">
         <div aria-hidden={missionCollapsed}><strong>{completed ? '五站任務完成' : `下一站：${locations[mission].name}`}</strong><small>{completed ? `${locations.length} 站皆已抵達` : `第 ${mission + 1} / ${locations.length} 站 · ${distance} m`}</small></div>
@@ -83,12 +84,13 @@ function HUD({touch, onHelp}:{touch:boolean;onHelp:()=>void}) {
   </>;
 }
 export default function App() {
-  const [guideOpen,setGuideOpen]=useState(needsDrivingGuide);
+  const [overlay,setOverlay]=useState<'guide'|'journal'|null>(()=>needsDrivingGuide()?'guide':null);
+  const guideOpen=overlay==='guide';
   useLayoutEffect(()=>{
-    useGame.getState().setControlsPaused(guideOpen);
+    useGame.getState().setControlsPaused(overlay!==null);
     return ()=>useGame.getState().setControlsPaused(false);
-  },[guideOpen]);
-  const changeGuide=(open:boolean)=>{useGame.getState().setControlsPaused(open);setGuideOpen(open);};
+  },[overlay]);
+  const changeOverlay=(value:'guide'|'journal'|null)=>{useGame.getState().setControlsPaused(value!==null);setOverlay(value);};
   const [mobileGraphics, setMobileGraphics] = useState(() => window.matchMedia('(any-pointer: coarse), (max-width: 850px)').matches);
   useEffect(() => {
     const query = window.matchMedia('(any-pointer: coarse), (max-width: 850px)');
@@ -98,5 +100,5 @@ export default function App() {
   }, []);
   const [hasWebGL] = useState(supported);
   const [contextLost, setContextLost] = useState(false);
-  return <main data-guide-state={hasWebGL&&!contextLost&&guideOpen?'open':'closed'}><GraphicsBoundary>{hasWebGL && !contextLost ? <><Canvas shadows={!mobileGraphics} dpr={mobileGraphics ? 1 : [1, 1.5]} gl={{ antialias: !mobileGraphics }} camera={{ position: [SPAWN.x, 9, SPAWN.z + 14], fov: 58, near: 0.1, far: 320 }} fallback={<GraphicsFallback />} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); }, { once: true }); }}><City /><Car lowDetail={mobileGraphics} /></Canvas><HUD touch={mobileGraphics} onHelp={()=>changeGuide(true)} />{guideOpen&&<DrivingGuide touch={mobileGraphics} onClose={()=>changeGuide(false)} />}</> : <GraphicsFallback />}</GraphicsBoundary></main>;
+  return <main data-guide-state={hasWebGL&&!contextLost&&guideOpen?'open':'closed'}><GraphicsBoundary>{hasWebGL && !contextLost ? <><Canvas shadows={!mobileGraphics} dpr={mobileGraphics ? 1 : [1, 1.5]} gl={{ antialias: !mobileGraphics }} camera={{ position: [SPAWN.x, 9, SPAWN.z + 14], fov: 58, near: 0.1, far: 320 }} fallback={<GraphicsFallback />} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); }, { once: true }); }}><City /><Car lowDetail={mobileGraphics} /></Canvas><HUD touch={mobileGraphics} onHelp={()=>changeOverlay('guide')} onJournal={()=>changeOverlay('journal')} />{guideOpen&&<DrivingGuide touch={mobileGraphics} onClose={()=>changeOverlay(null)} />}{overlay==='journal'&&<ExplorationJournal onClose={()=>changeOverlay(null)} />}<ExplorationNotices /></> : <GraphicsFallback />}</GraphicsBoundary></main>;
 }

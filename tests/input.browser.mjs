@@ -20,8 +20,10 @@ try {
   await page.waitForTimeout(400);
   assert.equal(await speed(),0,'the pre-reset held W must remain cleared');
   await page.keyboard.up('w');
+  await page.locator('.journal-toggle').focus();
   await page.keyboard.down('ArrowUp');await expect.poll(speed).toBeGreaterThan(5);
   await page.keyboard.up('ArrowUp');await page.keyboard.down('Space');
   await expect.poll(speed).toBe(0);await page.keyboard.up('Space');
+  await expect(page.locator('.exploration-journal')).toHaveCount(0);
   console.log('PASS: Immediate post-reset input survives; stale input clears; arrows and braking remain functional.');
 } finally {await browser.close();}

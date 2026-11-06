@@ -20,18 +20,21 @@ try {
       const { _roots } = await import('/node_modules/.vite/deps/@react-three_fiber.js');
       const { Box3 } = await import('/node_modules/.vite/deps/three.js');
       const state = _roots.get(document.querySelector('canvas')).store.getState();
+      const {buildings,chairperson}=await import('/src/data/city.ts');
+      const headquarters=buildings.find(b=>b.id==='headquarters');
       const npc = state.scene.getObjectByName('headquarters-chairperson');
       const bounds = new Box3().setFromObject(npc);
       let count = 0;
       state.scene.traverse(node => { if (node.name === 'chairperson-character') count++; });
       return { position: npc.position.toArray(), min: bounds.min.toArray(), max: bounds.max.toArray(),
-        greeting: npc.getObjectByName('chairperson-greeting').rotation.z, count };
+        greeting: npc.getObjectByName('chairperson-greeting').rotation.z, count,
+        expected:[chairperson.x,chairperson.y,chairperson.z],facadeZ:headquarters.z+headquarters.halfZ };
     });
     const before = await inspect();
-    assert.deepEqual(before.position, [-8.15, .31, 3.55]);
+    assert.deepEqual(before.position, before.expected);
     assert.equal(before.count, 1, 'StrictMode leaves exactly one character');
     assert.ok(before.min[1] >= .31 && before.min[1] < .33, 'shoes rest on the entrance pavement');
-    assert.ok(before.min[2] > 3.1 && before.max[2] < 4, 'character clears the facade and stays on pavement');
+    assert.ok(before.min[2] > before.facadeZ+.1 && before.max[2] < before.facadeZ+1, 'character clears the expanded facade and stays on pavement');
     await page.waitForTimeout(450);
     assert.notEqual((await inspect()).greeting, before.greeting, 'greeting animates');
     await page.keyboard.press('r');
@@ -47,7 +50,7 @@ try {
         state.camera.updateMatrixWorld();
       } }, priority: 0 });
     });
-    await page.addStyleTag({ content: 'header, aside, footer, .drive-caption, .speed-panel, .touch-controls, .passenger-panel, .world-label, .route-map { display: none !important; }' });
+    await page.addStyleTag({ content: 'header, aside, footer, .drive-caption, .speed-panel, .touch-controls, .passenger-panel, .world-label, .route-map, .destination-strip { display: none !important; }' });
     await page.waitForTimeout(500);
     await page.screenshot({ path: `.test-artifacts/chairperson-${mobile ? 'mobile' : 'desktop'}.png` });
     if (!mobile) {

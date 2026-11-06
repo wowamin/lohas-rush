@@ -87,6 +87,12 @@ try {
   assert.equal(outcome.completed, true, JSON.stringify(outcome));
   assert.deepEqual(outcome.visited, expected.names);
   await expect(page.locator('.mission-summary strong')).toHaveText('五站任務完成');
+  const journalBeforeReset=await page.evaluate(async()=>{
+    const {explorationStore}=await import('/src/stores/exploration.ts');
+    const {locations}=await import('/src/data/locations.ts');
+    return locations.map(location=>({id:location.id,entry:explorationStore.getState().entries[location.id]}));
+  });
+  assert.ok(journalBeforeReset.every(item=>item.entry&&item.entry.completedAt===null),'mainline arrivals discover locations without confirming journal exploration');
   await page.keyboard.down('Space');
   await expect.poll(()=>page.locator('.speed-panel strong').innerText().then(Number),{timeout:15000}).toBe(0);
   await page.keyboard.up('Space');
@@ -101,6 +107,12 @@ try {
   await page.keyboard.press('r');
   await expect(page.locator('.mission-summary strong')).toHaveText(`下一站：${expected.first}`);
   await expect(page.locator('.route-stop.visited')).toHaveCount(0);
+  const journalAfterReset=await page.evaluate(async()=>{
+    const {explorationStore}=await import('/src/stores/exploration.ts');
+    const {locations}=await import('/src/data/locations.ts');
+    return locations.map(location=>({id:location.id,entry:explorationStore.getState().entries[location.id]}));
+  });
+  assert.deepEqual(journalAfterReset,journalBeforeReset,'resetting the completed mainline preserves all five discoveries');
   await page.waitForTimeout(250);
   // Drive into the fountain's collision boundary, then reverse away through actual keys.
   await page.keyboard.down('w');

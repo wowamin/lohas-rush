@@ -127,7 +127,10 @@ try {
     if(!arrived.arrived) await page.screenshot({path:'.test-artifacts/wheelchair-return-debug.png'});
     assert.equal(arrived.arrived,true,`returns to the real boarding marker: ${JSON.stringify(arrived)}`);
     await expect(page.locator('.transfer-button')).toBeEnabled();await page.locator('.transfer-button').click();
-    await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:25000});
+    // Fixed-step simulation intentionally caps long frames. SwiftShader can
+    // take more wall time than the animation's simulated duration; still
+    // require the full driver/door/lift sequence to finish, with a hard bound.
+    await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:60000});
     await expect(page.locator('.camera-switch')).toHaveText('鏡頭：跟車');
     await expect(page.locator('.speed-panel .eyebrow')).toHaveText('SERVICE VAN · 01');
     const waitingHelper=await read();assert.equal(waitingHelper.helperPushing,false);assert.equal(waitingHelper.helperOnboard,true);assert.deepEqual(waitingHelper.helper,[.55,.75,-1.1]);assert.ok(Math.abs(waitingHelper.helperDoor)<1e-8);

@@ -58,6 +58,7 @@ try{
   await page.mouse.move(590,400);await page.mouse.down({button:'right'});await page.mouse.move(700,400,{steps:5});
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.waitForTimeout(1200);
   assert.equal(await page.locator('canvas.is-orbiting').count(),0);
+  await settle();
   const blurred=await read();await page.mouse.move(900,400);await page.mouse.up({button:'right'});await page.waitForTimeout(700);
   assert.ok(Math.hypot(...(await read()).position.map((v,i)=>v-blurred.position[i]))<.1);
   assert.equal(await page.locator('canvas').evaluate(canvas=>canvas.dispatchEvent(new MouseEvent('contextmenu',{cancelable:true,bubbles:true}))),false);
