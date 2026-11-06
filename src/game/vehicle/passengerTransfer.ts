@@ -1,24 +1,27 @@
 import { CITY_LIMIT, obstacles, type Obstacle } from '../../data/city.ts';
 import type { VehicleState } from './drivingPhysics.ts';
 import { BOARDING_RADIUS } from './wheelchairController.ts';
+import { cabinWheelchairPosition, groundWheelchairPosition } from './transferPath.ts';
 
 export const transferDurations = {
   driverExit:1.5, driverWalk:1.8, driverReturn:1.8, driverEnter:1.5,
-  opening: 1, deploying: 1.2, rollingOut: 1.6, lowering: 1.4, exiting: 1.4,
-  aligning: .8, boarding: 1.4, raising: 1.4, rollingIn: 1.6, folding: 1.2, closing: 1,
+  opening: 1, deploying: 1.2, driverClimb:2.8, driverGrip:.6, rollingOut:3, driverSecure:.6, driverStepDown:2.2, lowering: 1.4,
+  driverDeckApproach:1.6, driverDeckGrip:.6, exiting:2.4, driverGroundStop:.5, driverHandoff:1.6, driverBackToControls:1.7,
+  aligning: .8, boarding: 1.4, raising: 1.4, driverBoard:2.2, driverGripIn:.6, rollingIn:3, driverRelease:.6, driverLeave:2.8, folding: 1.2, closing: 1,
 } as const;
 export type TransferPhase = 'stowed' | 'outside' | keyof typeof transferDurations;
 export const transferLabels: Record<TransferPhase, string> = {
   driverExit:'司機大哥下車準備',driverWalk:'司機前往車尾控制台',driverReturn:'司機返回駕駛座',driverEnter:'司機上車並關妥車門',
   stowed: '兩位乘客在車內', opening: '後車門開啟中', deploying: '升降平台展開中',
-  rollingOut: '奶奶移至平台', lowering: '平台下降中', exiting: '奶奶離開平台',
+  driverClimb:'司機踩上平台進入車廂', driverGrip:'司機握妥輪椅把手', rollingOut: '司機協助奶奶移至平台', driverSecure:'司機固定輪椅', driverStepDown:'司機離開平台準備下降', lowering: '平台下降中',
+  driverDeckApproach:'司機走上落地平台', driverDeckGrip:'司機握妥輪椅準備拉出', exiting:'司機將奶奶拉至地面', driverGroundStop:'司機將輪椅停穩', driverHandoff:'照服員接手輪椅', driverBackToControls:'司機退回控制台',
   outside: '操控奶奶輪椅・爺爺留在車內', aligning: '輪椅對準升降平台', boarding: '奶奶返回平台', raising: '平台上升中',
-  rollingIn: '奶奶返回車廂', folding: '收起升降平台', closing: '後車門關閉中',
+  driverBoard:'司機踩上平台協助上車', driverGripIn:'司機握妥輪椅準備推入', rollingIn: '司機推奶奶返回車廂', driverRelease:'司機安置輪椅', driverLeave:'司機離開車廂與平台', folding: '收起升降平台', closing: '後車門關閉中',
 };
 const next: Partial<Record<TransferPhase, TransferPhase>> = {
   driverExit:'driverWalk',driverWalk:'opening',driverReturn:'driverEnter',driverEnter:'stowed',
-  opening:'deploying', deploying:'rollingOut', rollingOut:'lowering', lowering:'exiting', exiting:'outside',
-  aligning:'boarding', boarding:'raising', raising:'rollingIn', rollingIn:'folding', folding:'closing', closing:'driverReturn',
+  opening:'deploying', deploying:'driverClimb', driverClimb:'driverGrip', driverGrip:'rollingOut', rollingOut:'driverSecure', driverSecure:'driverStepDown', driverStepDown:'lowering', lowering:'driverDeckApproach', driverDeckApproach:'driverDeckGrip', driverDeckGrip:'exiting', exiting:'driverGroundStop', driverGroundStop:'driverHandoff', driverHandoff:'driverBackToControls', driverBackToControls:'outside',
+  aligning:'boarding', boarding:'raising', raising:'driverBoard', driverBoard:'driverGripIn', driverGripIn:'rollingIn', rollingIn:'driverRelease', driverRelease:'driverLeave', driverLeave:'folding', folding:'closing', closing:'driverReturn',
 };
 const ease = (t: number) => { const x = Math.max(0, Math.min(1, t)); return x*x*(3-2*x); };
 const lerp = (a: number, b: number, t: number) => a + (b-a)*t;
@@ -28,21 +31,24 @@ export function transferPose(phase: TransferPhase, progress = 0): TransferPose {
   const t = ease(progress);
   const pose: TransferPose = { hatch: 1, fold: 0, deckY: .75, grandmaX: 0, grandmaY: .75, grandmaZ: 2.75, grandmaYaw: Math.PI, grandmaInside: false };
   const seated = () => { pose.grandmaX = -.43; pose.grandmaY = .75; pose.grandmaZ = .42; pose.grandmaInside = true; };
-  if (phase === 'stowed' || phase === 'driverExit' || phase === 'driverWalk' || phase === 'driverReturn' || phase === 'driverEnter' || phase === 'opening' || phase === 'deploying' || phase === 'folding' || phase === 'closing') {
+  if (['stowed','driverExit','driverWalk','driverReturn','driverEnter','opening','deploying','driverClimb','driverGrip','driverRelease','driverLeave','folding','closing'].includes(phase)) {
     seated();
     const closed=['stowed','driverExit','driverWalk','driverReturn','driverEnter'].includes(phase);
     pose.hatch = closed ? 0 : phase === 'opening' ? t : phase === 'closing' ? 1-t : 1;
-    pose.fold = phase === 'deploying' ? 1-t : phase === 'folding' ? t : 1;
+    pose.fold = phase === 'deploying' ? 1-t : phase === 'folding' ? t : ['driverClimb','driverGrip','driverRelease','driverLeave'].includes(phase) ? 0 : 1;
   } else if (phase === 'rollingOut' || phase === 'rollingIn') {
     const u = phase === 'rollingOut' ? progress : 1-progress;
-    pose.grandmaX = lerp(-.43, 0, ease(u/.3));
-    pose.grandmaZ = lerp(.42, 2.75, ease((u-.3)/.7));
+    const chair=cabinWheelchairPosition(u);pose.grandmaX=chair.x;pose.grandmaZ=chair.z;
     pose.grandmaInside = pose.grandmaZ < 2;
+  } else if (['driverSecure','driverStepDown','driverBoard','driverGripIn'].includes(phase)) {
+    // Hold the occupied platform at cabin height until assistance is complete.
   } else if (phase === 'lowering' || phase === 'raising') {
     pose.deckY = lerp(.75, .14, phase === 'lowering' ? t : 1-t); pose.grandmaY = pose.deckY;
+  } else if (phase==='driverDeckApproach'||phase==='driverDeckGrip') {
+    pose.deckY=.14;pose.grandmaY=.14;
   } else {
     pose.deckY = .14; pose.grandmaY = .14;
-    pose.grandmaZ = phase === 'outside' || phase === 'aligning' ? 4.5 : lerp(2.75, 4.5, phase === 'exiting' ? t : 1-t);
+    pose.grandmaZ = ['outside','aligning','driverGroundStop','driverHandoff','driverBackToControls'].includes(phase) ? 4.5 : phase==='exiting'?groundWheelchairPosition(progress).z:lerp(4.5,2.75,t);
   }
   return pose;
 }

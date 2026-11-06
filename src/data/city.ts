@@ -3,6 +3,7 @@ import { servicePoints, type ServicePoint } from './services.ts';
 import { landscapeObstacles } from './landscape.ts';
 import { generatedCity, shopPrefabs } from './buildingLots.ts';
 import { expansionBuildings } from './cityExpansion.ts';
+import { createStreetFurniture, fixtureObstacles } from './streetFurniture.ts';
 export { locations, type Location } from './locations.ts';
 export { CITY_LIMIT } from './roadNetwork.ts';
 export type Obstacle = { x: number; z: number; halfX: number; halfZ: number; kind?: string };
@@ -23,7 +24,7 @@ export const buildings: Building[] = [
 export const fountain = { x: 8, z: 0, radius: 6 };
 const headquarters = buildings.find(building => building.id === 'headquarters')!;
 export const chairperson = { x: headquarters.x + 1.85, y: .31, z: headquarters.z + headquarters.halfZ + .55, halfX: .6, halfZ: .3, kind: 'npc' };
-export const obstacles: Obstacle[] = [
+const baseObstacles: Obstacle[] = [
   chairperson,
   ...buildings.map(({ x, z, halfX, halfZ }) => ({ x, z, halfX, halfZ, kind: 'building' })),
   { x: fountain.x, z: fountain.z, halfX: fountain.radius, halfZ: fountain.radius, kind: 'fountain' },
@@ -32,3 +33,5 @@ export const obstacles: Obstacle[] = [
   { x: 48, z: 28, halfX: .4, halfZ: .9, kind: 'parked-scooter' },
   { x: 39, z: 28, halfX: .35, halfZ: .35, kind: 'roadside-cone' },
 ];
+export const streetFurniture = createStreetFurniture(baseObstacles,[...locations.map(l=>l.arrival),...servicePoints.map(s=>s.arrival),[headquarters.x,headquarters.z+headquarters.halfZ+5]]);
+export const obstacles: Obstacle[] = [...baseObstacles,...fixtureObstacles(streetFurniture)];

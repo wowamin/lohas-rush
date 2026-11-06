@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { Vector3,Box3 } from 'three';
 import { driverPose,DRIVER_OPERATOR } from '../src/game/vehicle/driverAssistance.ts';
 import { createDriverModel,poseDriver } from '../src/game/vehicle/driverModel.ts';
-import { PassengerTransfer,transferAreaClear,transferDurations } from '../src/game/vehicle/passengerTransfer.ts';
+import { PassengerTransfer,transferAreaClear,transferDurations,transferPose } from '../src/game/vehicle/passengerTransfer.ts';
+import { DRIVER_CHAIR_OFFSET } from '../src/game/vehicle/transferPath.ts';
 import { wheelchairCollides } from '../src/game/vehicle/wheelchairController.ts';
 import { createVehicle,STEP } from '../src/game/vehicle/drivingPhysics.ts';
 import { createServiceVanFallback } from '../src/game/vehicle/serviceVan.ts';
@@ -35,7 +36,7 @@ test('both front occupants clear the fixed seat backs throughout entry and exit'
 test('driver reaches controls before hatch opens, operates lift while occupied and returns before driving unlocks',()=>{
   const machine=new PassengerTransfer();machine.request(createVehicle());
   let outside=false,returned=false;
-  for(let i=0;i<5000;i++){
+  for(let i=0;i<7000;i++){
     const pose=machine.pose,driver=driverPose(machine.phase,machine.progress);
     if(machine.phase==='driverExit'||machine.phase==='driverWalk') {assert.equal(pose.hatch,0);assert.equal(pose.grandmaInside,true);assert.equal(machine.locked,true);}
     if(['opening','deploying','lowering','raising','folding','closing'].includes(machine.phase)){
@@ -85,5 +86,51 @@ test('driver route refuses a blocked side and reset clears every added driver ph
   for(const phase of Object.keys(transferDurations)){
     const machine=new PassengerTransfer();machine.phase=phase;machine.elapsed=.4;machine.reset();
     assert.equal(machine.phase,'stowed');assert.deepEqual(driverPose(machine.phase,machine.progress),driverPose('stowed'));
+  }
+});
+
+test('driver enters the open cabin, keeps both hands on the moving chair, then clears the lift before lowering',()=>{
+  const machine=new PassengerTransfer(),model=createDriverModel();machine.request(createVehicle());
+  let entered=false,pulled=false,secured=false,steppedDown=false;
+  try{
+    for(let i=0;i<4000&&machine.phase!=='outside';i++){
+      const chair=machine.pose,driver=driverPose(machine.phase,machine.progress);
+      if(machine.phase==='driverGrip'){
+        entered=true;assert.equal(driver.y,.75);assert.ok(driver.z<2);assert.equal(chair.grandmaZ,.42);
+      }
+      if(machine.phase==='rollingOut'||machine.phase==='exiting'){
+        pulled=true;assert.equal(driver.grip,1);assert.equal(driver.y,chair.grandmaY);assert.equal(chair.deckY,machine.phase==='rollingOut'?.75:.14);
+        assert.ok(Math.abs(driver.x-chair.grandmaX)<1e-9);assert.ok(Math.abs(driver.z-chair.grandmaZ-DRIVER_CHAIR_OFFSET)<1e-9);
+        // Test rendered hand positions, including gait, rather than only roots.
+        poseDriver(model,driver,i/120);model.root.position.set(driver.x,driver.y,driver.z);model.root.rotation.y=driver.yaw;model.root.updateMatrixWorld(true);
+        for(let side=0;side<2;side++){
+          const hand=model.elbows[side].localToWorld(new Vector3(0,-.195,.008));
+          const handle=new Vector3(chair.grandmaX+(side===0?.198:-.198),chair.grandmaY+.756,chair.grandmaZ+.27);
+          assert.ok(hand.distanceTo(handle)<.025,'hands remain on wheelchair handles throughout the pull');
+        }
+      }
+      if(machine.phase==='driverSecure'){secured=true;assert.equal(chair.grandmaZ,2.75);assert.equal(chair.deckY,.75);}
+      if(machine.phase==='driverStepDown'){steppedDown=true;assert.equal(chair.grandmaZ,2.75);assert.equal(chair.deckY,.75);}
+      if(machine.phase==='lowering'){
+        assert.ok(entered&&pulled&&secured&&steppedDown);assert.equal(driver.y,.14);assert.equal(driver.operate,1);
+      }
+      machine.step(STEP);
+    }
+    assert.equal(machine.phase,'outside');
+  }finally{disposeModels([model.root]);}
+});
+
+test('assisted boarding and unloading poses join continuously at every new phase boundary',()=>{
+  const order=['deploying','driverClimb','driverGrip','rollingOut','driverSecure','driverStepDown','lowering','driverDeckApproach','driverDeckGrip','exiting','driverGroundStop','driverHandoff','driverBackToControls','outside'];
+  const returning=['raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding'];
+  for(const chain of [order,returning])for(let i=0;i<chain.length-1;i++){
+    const a=driverPose(chain[i],1),b=driverPose(chain[i+1],0);
+    for(const field of ['x','y','z','seated','door','grip','crouch'])assert.ok(Math.abs(a[field]-b[field])<1e-8,`${chain[i]} -> ${chain[i+1]}: ${field}`);
+    assert.ok(Math.abs(Math.atan2(Math.sin(a.yaw-b.yaw),Math.cos(a.yaw-b.yaw)))<1e-8);
+  }
+  for(const phase of ['rollingOut','rollingIn'])for(let i=0;i<=100;i++){
+    const chair=transferPose(phase,i/100),driver=driverPose(phase,i/100);
+    assert.equal(driver.grip,1);assert.ok(Math.abs(driver.z-chair.grandmaZ-DRIVER_CHAIR_OFFSET)<1e-8);
+    assert.ok(Math.abs(chair.grandmaX-.43)>.65||chair.grandmaZ-.3>.75,'clear grandpa before moving sideways through the cabin');
   }
 });

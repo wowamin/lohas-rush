@@ -52,7 +52,7 @@ test('returning requires stopped wheelchair near marker and smoothly aligns its 
   assert.equal(machine.phase,'aligning'); assert.equal(machine.pose.grandmaX,from.x); assert.equal(machine.pose.grandmaZ,from.z); assert.equal(machine.pose.grandmaYaw,from.yaw);
   for(let i=0;i<30;i++) machine.step(STEP);
   assert.ok(machine.pose.grandmaX<from.x && machine.pose.grandmaX>0);
-  for(let i=0;i<2000 && machine.locked;i++) machine.step(STEP);
+  for(let i=0;i<4000 && machine.locked;i++) machine.step(STEP);
   assert.equal(machine.phase,'stowed'); assert.equal(machine.pose.grandmaInside,true);
 });
 

@@ -9,6 +9,7 @@ import {disposeModels} from '../src/game/assets/GameAssets.ts';
 import {PassengerTransfer} from '../src/game/vehicle/passengerTransfer.ts';
 import {createVehicle,STEP} from '../src/game/vehicle/drivingPhysics.ts';
 import {createServiceVanFallback} from '../src/game/vehicle/serviceVan.ts';
+import {driverPose} from '../src/game/vehicle/driverAssistance.ts';
 
 test('caregiver remains behind the chair at every heading and smoothly takes/releases the grips',()=>{
   for(let i=0;i<32;i++){
@@ -16,10 +17,36 @@ test('caregiver remains behind the chair at every heading and smoothly takes/rel
     assert.ok(Math.abs(pose.x-behind.x)<1e-8 && Math.abs(pose.z-behind.z)<1e-8);
     assert.ok(Math.abs(Math.hypot(pose.x-chair.x,pose.z-chair.z)-CAREGIVER_OFFSET)<1e-8);
     assert.ok(Math.abs(Math.sin(pose.yaw-chair.yaw))<1e-8);
-    const handoff=caregiverPose('exiting',1,chair),release=caregiverPose('aligning',0,chair);
+    const handoff=caregiverPose('driverHandoff',1,chair),release=caregiverPose('aligning',0,chair);
     for(const key of Object.keys(pose)){assert.ok(Math.abs(handoff[key]-pose[key])<1e-8);assert.ok(Math.abs(release[key]-pose[key])<1e-8);}
     const wait=caregiverPose('aligning',1,chair);assert.equal(wait.x,CAREGIVER_WAIT.x);assert.equal(wait.z,CAREGIVER_WAIT.z);assert.equal(wait.grip,0);
   }
+});
+
+test('caregiver waits until grandma reaches the ground and the driver steps aside',()=>{
+  const machine=new PassengerTransfer();machine.request(createVehicle());
+  let approached=false,pulled=false,stopped=false,handedOver=false;
+  for(let i=0;i<4500&&machine.phase!=='outside';i++){
+    const pose=machine.pose,chair={x:pose.grandmaX,z:pose.grandmaZ,yaw:pose.grandmaYaw};
+    const helper=caregiverPose(machine.phase,machine.progress,chair);
+    if(['driverDeckApproach','driverDeckGrip','exiting','driverGroundStop'].includes(machine.phase)){
+      assert.equal(helper.grip,0);assert.equal(helper.x,CAREGIVER_WAIT.x);assert.equal(helper.z,CAREGIVER_WAIT.z);
+      assert.equal(pose.deckY,.14);assert.equal(pose.grandmaY,.14);
+    }
+    if(machine.phase==='driverDeckApproach'){approached=true;assert.equal(pose.grandmaZ,2.75);}
+    if(machine.phase==='exiting'){pulled=true;assert.ok(approached);}
+    if(machine.phase==='driverGroundStop'){stopped=true;assert.equal(pose.grandmaZ,4.5);}
+    if(machine.phase==='driverHandoff'){
+      handedOver=true;assert.ok(approached&&pulled&&stopped);assert.equal(pose.grandmaZ,4.5);
+      if(machine.progress<=.45){assert.equal(helper.grip,0);assert.equal(helper.x,CAREGIVER_WAIT.x);}
+      const driver=driverPose(machine.phase,machine.progress);
+      assert.ok(Math.hypot(driver.x-helper.x,driver.z-helper.z)>.89,'attendants have separate standing space');
+      if(helper.grip>0)assert.equal(driver.grip,0,'driver releases before caregiver takes the handles');
+    }
+    if(machine.phase==='driverBackToControls'){assert.equal(helper.grip,1);assert.equal(pose.grandmaZ,4.5);}
+    machine.step(STEP);
+  }
+  assert.equal(machine.phase,'outside');assert.ok(handedOver);
 });
 
 test('reference caregiver has animated steps and the wheelchair/caregiver collision union covers every vertex',()=>{

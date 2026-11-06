@@ -64,9 +64,10 @@ try{
   assert.equal(await page.locator('canvas').evaluate(canvas=>canvas.dispatchEvent(new MouseEvent('contextmenu',{cancelable:true,bubbles:true}))),false);
   await page.keyboard.press('r');await page.waitForTimeout(200);
   await drag(240);await page.keyboard.press('c');await page.waitForTimeout(2200);
-  await expect(page.locator('.camera-switch')).toHaveText('鏡頭：高視角');assert.ok((await read()).position[1]>16);
+  await expect(page.locator('.camera-switch')).toHaveText('鏡頭：高視角');
+  await expect.poll(async()=>(await read()).position[1],{timeout:15000}).toBeGreaterThan(16);
   await page.keyboard.press('r');await page.waitForTimeout(200);
-  await page.locator('.transfer-button').click();await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:30000});
+  await page.locator('.transfer-button').click();await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:90000});
   await page.waitForTimeout(2500);const chairView=await read();await drag(240,30);
   assert.ok(Math.hypot(...(await read()).position.map((v,i)=>v-chairView.position[i]))>1,'wheelchair supports right drag');
   await page.screenshot({path:'.test-artifacts/orbit-wheelchair.png'});

@@ -98,9 +98,9 @@ try {
   await page.keyboard.up('Space');
   // Verify the real transfer sequence after stopping at the fifth destination.
   await page.keyboard.press('e');
-  await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:30000});
+  await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:90000});
   await page.keyboard.press('e');
-  await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:30000});
+  await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:60000});
   await expect(page.locator('.mission-summary strong')).toHaveText('五站任務完成');
   await mkdir('.test-artifacts', { recursive: true });
   await page.screenshot({ path: '.test-artifacts/five-centers-completed.png' });

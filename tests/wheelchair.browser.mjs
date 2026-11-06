@@ -25,7 +25,7 @@ try {
       const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js'),scene=_roots.get(document.querySelector('canvas'))?.store.getState().scene;
       return (scene?.getObjectByName('passengerDoor')?.rotation.y??0)>.3;
     });
-    await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:30000});
+    await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:90000});
     await expect(page.locator('.camera-switch')).toHaveText('鏡頭：輪椅跟隨');
     const read=async()=>page.evaluate(async()=>{
       const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');

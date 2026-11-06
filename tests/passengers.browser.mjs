@@ -22,14 +22,17 @@ try {
         grandmaInside:a.userData.onboard,grandpaInside:b.userData.onboard,hatch:model.getObjectByName('rearHatch').rotation.x,
         driver:scene.getObjectByName('driver-helper').position.toArray(),driverInside:scene.getObjectByName('driver-helper').userData.onboard,
         operating:scene.getObjectByName('driver-helper').userData.operating,elbow:scene.getObjectByName('driver-elbow-right')?.rotation.x,
+        gripping:scene.getObjectByName('driver-helper').userData.gripping,steps:scene.getObjectByName('driver-rear-steps').visible,
+        caregiver:scene.getObjectByName('caregiver-helper').position.toArray(),caregiverGrip:scene.getObjectByName('caregiver-helper').userData.grip,
         driverDoor:model.getObjectByName('driverDoor')?.rotation.y,panel:scene.getObjectByName('lift-control-panel').visible,
-        deck:scene.getObjectByName('wheelchair-lift').position.y,fold:scene.getObjectByName('wheelchair-lift').rotation.x,
+        deck:scene.getObjectByName('wheelchair-lift').position.y,fold:scene.getObjectByName('wheelchair-lift').rotation.x,deckLength:scene.getObjectByName('wheelchair-lift').scale.z*1.8,
         car:model.parent.position.toArray(),grandmaMeshes:a.children[0]?.children.length,grandpaMeshes:b.children[0]?.children.length };
     });
     await expect.poll(async()=> (await sceneState())?.model,{timeout:20000}).toBe(fallback?'fallback':'ready');
     await expect.poll(async()=> (await sceneState())?.grandmaInside).toBe(true);
     const initial = await sceneState(); assert.equal(initial.grandpaInside,true);
     assert.equal(initial.driverInside,true); assert.ok(Math.abs(initial.driverDoor)<.001);
+    assert.ok(initial.deck+initial.deckLength<2.3,'folded platform fits below the rear roof');
     assert.ok(initial.grandmaMeshes>0 && initial.grandpaMeshes>0);
     await page.screenshot({path:`.test-artifacts/passengers-${fallback?'fallback':'glb'}-inside.png`});
     const action = page.locator('.transfer-button');
@@ -40,6 +43,15 @@ try {
     await expect(page.locator('.camera-switch')).toBeDisabled();
     await page.keyboard.down('w'); await page.waitForTimeout(500); await page.keyboard.up('w');
     assert.deepEqual((await sceneState()).car,initial.car,'input cannot move van with hatch opening');
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機踩上平台進入車廂',{timeout:30000});
+    const entering=await sceneState();assert.equal(entering.deck,.75);assert.deepEqual(entering.grandma,initial.grandma);assert.equal(entering.steps,true);
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機握妥輪椅把手',{timeout:30000});
+    const assisting=await sceneState();assert.equal(assisting.driverInside,true);assert.equal(assisting.driver[1],.75);assert.equal(assisting.deck,.75);
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機協助奶奶移至平台',{timeout:30000});
+    const pulling=await sceneState();assert.equal(pulling.gripping,1);assert.equal(pulling.deck,.75);assert.equal(pulling.deckLength,1.8);
+    assert.ok(Math.abs(pulling.driver[0]-pulling.grandma[0])<1e-6);assert.ok(Math.abs(pulling.driver[2]-pulling.grandma[2]-.56)<1e-6);
+    await expect.poll(async()=>(await sceneState()).grandma[2],{timeout:30000,intervals:[100]}).toBeGreaterThan(1.5);
+    await page.screenshot({path:`.test-artifacts/passengers-${fallback?'fallback':'glb'}-driver-pulling.png`});
     await expect(page.locator('.passenger-status strong')).toHaveText('平台下降中',{timeout:25000});
     const lowering = await sceneState();
     assert.deepEqual(lowering.grandpa,initial.grandpa); assert.equal(lowering.grandpaInside,true);
@@ -48,9 +60,23 @@ try {
     assert.deepEqual(lowering.driver,[-1.3,.14,2.6]); assert.equal(lowering.operating,true);assert.equal(lowering.panel,true);
     await expect.poll(async()=>Math.abs((await sceneState()).elbow-lowering.elbow),{intervals:[30,50,80]}).toBeGreaterThan(.01);
     await page.screenshot({path:`.test-artifacts/passengers-${fallback?'fallback':'glb'}-lowering.png`});
-    await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:20000});
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機走上落地平台',{timeout:30000});
+    const deckApproach=await sceneState();assert.equal(deckApproach.deck,.14);assert.equal(deckApproach.grandma[2],2.75);
+    assert.deepEqual(deckApproach.caregiver,[1.55,.14,4.5]);assert.equal(deckApproach.caregiverGrip,0);
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機握妥輪椅準備拉出',{timeout:30000});
+    const deckGrip=await sceneState();assert.equal(deckGrip.driver[1],.14);assert.ok(Math.abs(deckGrip.driver[2]-deckGrip.grandma[2]-.56)<1e-6);
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機將奶奶拉至地面',{timeout:30000});
+    await expect.poll(async()=>(await sceneState()).grandma[2],{timeout:30000,intervals:[100]}).toBeGreaterThan(3.6);
+    const groundPull=await sceneState();assert.equal(groundPull.gripping,1);assert.equal(groundPull.grandma[1],.14);
+    assert.ok(Math.abs(groundPull.driver[2]-groundPull.grandma[2]-.56)<1e-6);
+    assert.deepEqual(groundPull.caregiver,[1.55,.14,4.5]);assert.equal(groundPull.caregiverGrip,0);
+    await page.screenshot({path:`.test-artifacts/passengers-${fallback?'fallback':'glb'}-ground-pull.png`});
+    await expect(page.locator('.passenger-status strong')).toHaveText('照服員接手輪椅',{timeout:30000});
+    const handoff=await sceneState();assert.equal(handoff.grandma[2],4.5);assert.equal(handoff.grandma[1],.14);
+    await expect(page.locator('.passenger-status strong')).toHaveText('操控奶奶輪椅・爺爺留在車內',{timeout:30000});
     const outside = await sceneState(); assert.equal(outside.grandmaInside,false); assert.equal(outside.grandpaInside,true);
     assert.deepEqual(outside.driver,[-1.3,.14,2.6]);assert.equal(outside.operating,false);
+    assert.equal(outside.caregiverGrip,1);assert.ok(Math.abs(outside.caregiver[2]-5.22)<1e-6);
     assert.deepEqual(outside.grandpa,initial.grandpa); assert.equal(outside.grandma[2],4.5); assert.equal(outside.deck,.14);
     await page.keyboard.down('w'); await page.waitForTimeout(150); await page.keyboard.up('w');
     await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
@@ -74,7 +100,7 @@ try {
     if (fallback) await action.tap(); else await action.click();
     await expect(page.locator('.passenger-status strong')).toHaveText('平台上升中',{timeout:15000});
     const raising=await sceneState(); assert.deepEqual(raising.grandpa,initial.grandpa); assert.ok(Math.abs(raising.grandma[1]-raising.deck)<.00001);
-    await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:25000});
+    await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:60000});
     await expect(page.locator('.camera-switch')).toHaveText('鏡頭：跟車');
     await expect.poll(async()=> Math.abs((await sceneState()).hatch)).toBeLessThan(.001);
     assert.equal((await sceneState()).grandmaInside,true);
@@ -93,7 +119,10 @@ try {
       await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內');
       await expect.poll(async()=> Math.abs((await sceneState()).hatch)).toBeLessThan(.001);
       assert.equal((await sceneState()).grandmaInside,true);
-      await expect.poll(async()=>(await sceneState()).driverInside).toBe(true);assert.ok(Math.abs((await sceneState()).driverDoor)<.001);
+      await expect.poll(async()=>(await sceneState()).driverInside).toBe(true);
+      // During the early exit the driver is still physically inside and the
+      // hatch is closed. Wait for the reset frame to close the side door too.
+      await expect.poll(async()=>Math.abs((await sceneState()).driverDoor)).toBeLessThan(.001);
     }
     await page.keyboard.down('w');
     await expect.poll(async()=>Number(await page.locator('.speed-panel strong').innerText())).toBeGreaterThan(0);

@@ -1,6 +1,7 @@
 import { memo, useLayoutEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { buildings } from '../data/city';
+import { buildings, streetFurniture } from '../data/city';
+import { SIDEWALK_WIDTH } from '../data/streetFurniture';
 import { roads, nodeById, CITY_LIMIT, INNER_RADIUS, OUTER_RADIUS, cityBlocks, streetJunctions } from '../data/roadNetwork';
 import { river, landscapeObstacles } from '../data/landscape';
 
@@ -25,7 +26,7 @@ for (const road of roads) {
   const x = (a[0] + b[0]) / 2, z = (a[1] + b[1]) / 2;
   if (road.kind !== 'ring') {
     const meshLength = length + (road.kind === 'street' ? 0 : 1);
-    box([x, 0, z], [road.width + 4, 0.1, meshLength], '#e4dfcf', rotation);
+    box([x, 0, z], [road.width + SIDEWALK_WIDTH*2, 0.1, meshLength], '#e4dfcf', rotation);
     box([x, 0.065, z], [road.width, 0.08, meshLength], '#7f9292', rotation);
   }
   for (let distance = road.kind === 'street' ? 7 : 2; distance < length - (road.kind === 'street' ? 6 : 1); distance += 5) {
@@ -37,13 +38,13 @@ for (const junction of streetJunctions) {
   if (junction.kind === 'straight') continue;
   const [x, z] = junction.point;
   // Raised intersection tiles cover coplanar street overlaps at T/cross/corner joins.
-  box([x, 0.04, z], [16.2, 0.04, 16.2], '#e4dfcf');
+  box([x, 0.04, z], [12.2+SIDEWALK_WIDTH*2, 0.04, 12.2+SIDEWALK_WIDTH*2], '#e4dfcf');
   box([x, 0.12, z], [12.1, 0.04, 12.1], '#7f9292');
 }
 for (const block of cityBlocks) {
   box([block.center[0], -0.01, block.center[1]], [block.lotWidth, 0.06, block.lotDepth], block.district === 'west' ? '#c8d4b7' : '#d5d9bd');
 }
-buildings.forEach((b, index) => {
+buildings.forEach(b => {
   if (b.id === 'daihe' || b.id === 'annan' || b.id === 'xinying') return;
   const rotation = b.rotation ?? 0, sin = Math.sin(rotation), cos = Math.cos(rotation);
   let owner: string | undefined;
@@ -64,12 +65,21 @@ buildings.forEach((b, index) => {
     for (const stripe of [-1, 1]) add([stripe * 2.5, 2.9, b.halfZ + 0.6], [1.3, 0.34, 1.65], b.color);
   }
   owner = undefined;
-  const treeZ = b.z + (index % 2 ? 7 : -7);
-  trunks.push({ position: [b.x - 8, 1, treeZ], size: [1, 1, 1], color: '#a08b6e' });
-  leaves.push({ position: [b.x - 8, 3.3, treeZ], size: [1, 1, 1], color: index % 2 ? '#86b195' : '#a4bd88' });
-  add([8, 2.7, -7], [0.16, 5.4, 0.16], '#667b76');
-  add([7.5, 5.4, -7], [1.2, 0.15, 0.2], '#667b76');
-  add([7.1, 5.25, -7], [0.6, 0.2, 0.5], '#fff1bc');
+});
+streetFurniture.forEach((fixture,index)=>{
+  const {x,z,rotation}=fixture;
+  if(fixture.kind==='tree'){
+    // Raised crowns clear the van; planted pits stay inside the curb strip.
+    box([x,.12,z],[1.35,.12,1.35],'#aebf92',rotation);
+    trunks.push({position:[x,2.08,z],size:[1,2,1],color:'#a08b6e'});
+    leaves.push({position:[x,4.7,z],size:[.9,1,.9],color:index%2?'#86b195':'#a4bd88'});
+  }else{
+    const cos=Math.cos(rotation),sin=Math.sin(rotation);
+    box([x,.19,z],[.38,.24,.38],'#65746f',rotation);
+    box([x,3.07,z],[.16,5.9,.16],'#576d72',rotation);
+    box([x+.65*cos,6.03,z-.65*sin],[1.45,.14,.18],'#576d72',rotation);
+    box([x+1.25*cos,5.94,z-1.25*sin],[.65,.16,.43],'#fff1bc',rotation);
+  }
 });
 const emptyShops: ReadonlySet<string> = new Set();
 function Instances({ items, shape, hiddenShops = emptyShops }: { items: Instance[]; shape: 'box' | 'trunk' | 'leaf'; hiddenShops?: ReadonlySet<string> }) {
@@ -101,7 +111,7 @@ function Instances({ items, shape, hiddenShops = emptyShops }: { items: Instance
 export const StaticScenery = memo(function StaticScenery({ hiddenShops }: { hiddenShops: ReadonlySet<string> }) {
   return <><Instances items={boxes} shape="box" hiddenShops={hiddenShops} /><Instances items={trunks} shape="trunk" /><Instances items={leaves} shape="leaf" />
     {[INNER_RADIUS, OUTER_RADIUS].map(radius => <group key={radius}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} receiveShadow><ringGeometry args={[radius - 10, radius + 10, 80]} /><meshStandardMaterial color="#e4dfcf" /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} receiveShadow><ringGeometry args={[radius - 8-SIDEWALK_WIDTH, radius + 8+SIDEWALK_WIDTH, 80]} /><meshStandardMaterial color="#e4dfcf" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.11, 0]} receiveShadow><ringGeometry args={[radius - 8, radius + 8, 80]} /><meshStandardMaterial color="#7f9292" /></mesh>
     </group>)}
   </>;

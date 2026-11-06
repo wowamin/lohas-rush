@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --test --test-isolation=none tests/game.test.mjs tests/assets.test.mjs tests/service-van.test.mjs tests/passengers.test.mjs tests/wheelchair.test.mjs tests/driver.test.mjs tests/orbit.test.mjs tests/caregiver.test.mjs tests/city-planning.test.mjs tests/exploration.test.mjs",
+    "test": "node --test --test-isolation=none tests/game.test.mjs tests/assets.test.mjs tests/service-van.test.mjs tests/passengers.test.mjs tests/wheelchair.test.mjs tests/driver.test.mjs tests/orbit.test.mjs tests/caregiver.test.mjs tests/city-planning.test.mjs tests/exploration.test.mjs tests/street-furniture.test.mjs",
     "test:orbit": "node tests/orbit.browser.mjs",
     "test:browser": "node tests/browser.mjs",
     "test:ui": "node tests/onboarding.browser.mjs",

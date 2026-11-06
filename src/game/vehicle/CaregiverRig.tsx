@@ -35,7 +35,7 @@ export function CaregiverRig({transfer,wheelchair,bus}:{transfer:MutableRefObjec
     previousPhase.current=current.phase;
     element.visible=true;element.position.set(pose.x,pose.y,pose.z);element.rotation.y=pose.yaw;
     element.userData.onboard=pose.seated>.99;
-    element.userData.pushing=current.phase==='outside';element.userData.walking=motion;
+    element.userData.pushing=pose.grip>.99;element.userData.grip=pose.grip;element.userData.walking=motion;
     if(model.current)poseCaregiver(model.current,stride.current,motion,pose.grip,pose.seated);
   },-1.4);
   return <group ref={root} name="caregiver-helper" position={[.55,.75,-1.10]} rotation={[0,Math.PI,0]} />;

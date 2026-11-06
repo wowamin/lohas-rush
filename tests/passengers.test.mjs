@@ -19,7 +19,7 @@ test('ordered transfer opens hatch, deploys, moves grandma and lowers before exi
   const machine = new PassengerTransfer();
   assert.equal(machine.request(createVehicle()), '');
   const phases = [machine.phase];
-  for (let i = 0; i < 2000 && machine.phase !== 'outside'; i++) {
+  for (let i = 0; i < 4000 && machine.phase !== 'outside'; i++) {
     const before = machine.phase, pose = machine.pose;
     assert.equal(pose.grandmaYaw,Math.PI,'grandma faces forward throughout unloading');
     assert.ok(pose.deckY >= .14 - 1e-9 && pose.deckY <= .75 + 1e-9);
@@ -27,7 +27,7 @@ test('ordered transfer opens hatch, deploys, moves grandma and lowers before exi
     if (before === 'lowering') assert.equal(pose.grandmaY,pose.deckY);
     machine.step(STEP); if (machine.phase !== before) phases.push(machine.phase);
   }
-  assert.deepEqual(phases,['driverExit','driverWalk','opening','deploying','rollingOut','lowering','exiting','outside']);
+  assert.deepEqual(phases,['driverExit','driverWalk','opening','deploying','driverClimb','driverGrip','rollingOut','driverSecure','driverStepDown','lowering','driverDeckApproach','driverDeckGrip','exiting','driverGroundStop','driverHandoff','driverBackToControls','outside']);
   assert.equal(machine.pose.grandmaInside,false); assert.equal(machine.pose.grandmaZ,4.5);
   assert.equal(machine.locked,true); assert.equal(machine.pose.hatch,1);
 });
@@ -36,16 +36,16 @@ test('boarding reverses path, raises occupied platform, folds and closes before 
   const machine = new PassengerTransfer(); machine.request(createVehicle()); advance(machine,'outside');
   assert.equal(machine.request(createVehicle()), '');
   const phases = [machine.phase];
-  for (let i=0;i<2000 && machine.locked;i++) {
+  for (let i=0;i<4000 && machine.locked;i++) {
     const before = machine.phase; machine.step(STEP); if (machine.phase !== before) phases.push(machine.phase);
   }
-  assert.deepEqual(phases,['aligning','boarding','raising','rollingIn','folding','closing','driverReturn','driverEnter','stowed']);
+  assert.deepEqual(phases,['aligning','boarding','raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter','stowed']);
   assert.equal(machine.pose.grandmaInside,true); assert.equal(machine.pose.hatch,0);
   assert.equal(machine.pose.fold,1); assert.equal(machine.pose.grandmaYaw,Math.PI);
 });
 
 test('poses are continuous at every phase boundary and reset is deterministic at all stages', () => {
-  const order = ['stowed','driverExit','driverWalk','opening','deploying','rollingOut','lowering','exiting','outside','aligning','boarding','raising','rollingIn','folding','closing','driverReturn','driverEnter','stowed'];
+  const order = ['stowed','driverExit','driverWalk','opening','deploying','driverClimb','driverGrip','rollingOut','driverSecure','driverStepDown','lowering','driverDeckApproach','driverDeckGrip','exiting','driverGroundStop','driverHandoff','driverBackToControls','outside','aligning','boarding','raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter','stowed'];
   for (let i=0;i<order.length-1;i++) {
     const a = transferPose(order[i],1), b = transferPose(order[i+1],0);
     for (const key of ['hatch','fold','deckY','grandmaX','grandmaY','grandmaZ','grandmaYaw']) assert.ok(Math.abs(a[key]-b[key])<1e-8, `${order[i]} -> ${order[i+1]}: ${key}`);

@@ -18,7 +18,7 @@ export function DriverRig({transfer}:{transfer:MutableRefObject<PassengerTransfe
   useFrame((_,delta)=>{
     clock.current+=Math.min(delta,.1);
     const transferState=transfer.current,pose=driverPose(transferState.phase,transferState.progress);
-    if(root.current){root.current.position.set(pose.x,pose.y,pose.z);root.current.rotation.y=pose.yaw;root.current.userData.operating=pose.operate>0;root.current.userData.onboard=transferState.phase==='stowed';}
+    if(root.current){root.current.position.set(pose.x,pose.y,pose.z);root.current.rotation.y=pose.yaw;root.current.userData.operating=pose.operate>0;root.current.userData.gripping=pose.grip;root.current.userData.onboard=transferState.phase==='stowed'||(pose.y>.7&&pose.z<2);}
     if(model.current)poseDriver(model.current,pose,clock.current);
   },-1.5);
   return <group name="driver-assistance-rig">
