@@ -20,12 +20,20 @@ export function caregiverPose(phase:string,progress:number,chair:{x:number;z:num
     return{x:1.85+(CAREGIVER_WAIT.x-1.85)*reach,y:.14,z:-.75+(CAREGIVER_WAIT.z+.75)*smooth(u/.9),yaw,seated:0,door:1-smooth(u/.22),grip:0,walking:Math.sin(Math.PI*t)};
   }
   const behind=caregiverBehind(chair.x,chair.z,chair.yaw);
+  if(phase==='aligning'||phase==='boarding'){
+    const turn=Math.atan2(Math.sin(chair.yaw-CAREGIVER_WAIT.yaw),Math.cos(chair.yaw-CAREGIVER_WAIT.yaw));
+    return{x:behind.x,y:.14,z:behind.z,yaw:CAREGIVER_WAIT.yaw+turn,seated:0,door:0,grip:1,walking:Math.sin(Math.PI*t)};
+  }
+  if(phase==='caregiverClear'){
+    const turn=Math.atan2(Math.sin(CAREGIVER_WAIT.yaw-chair.yaw),Math.cos(CAREGIVER_WAIT.yaw-chair.yaw)),move=ease;
+    return{x:behind.x+(CAREGIVER_WAIT.x-behind.x)*move,y:.14,z:behind.z+(CAREGIVER_WAIT.z-behind.z)*move,
+      yaw:chair.yaw+turn*move,seated:0,door:0,grip:1-move,walking:Math.sin(Math.PI*t)};
+  }
   // Stay clear while the driver pulls the chair off the lowered deck. The
   // wheelchair is stationary before the driver steps aside and hands it over.
-  const approach=phase==='outside'||phase==='driverBackToControls'?1:phase==='driverHandoff'?smooth((t-.45)/.55):phase==='aligning'?1-ease:0;
+  const approach=phase==='outside'||phase==='driverBackToControls'?1:phase==='driverHandoff'?smooth((t-.45)/.55):0;
   const grip=phase==='driverHandoff'?smooth((t-.6)/.4):approach;
   const turn=Math.atan2(Math.sin(chair.yaw-CAREGIVER_WAIT.yaw),Math.cos(chair.yaw-CAREGIVER_WAIT.yaw));
   return {x:CAREGIVER_WAIT.x+(behind.x-CAREGIVER_WAIT.x)*approach,z:CAREGIVER_WAIT.z+(behind.z-CAREGIVER_WAIT.z)*approach,
-    yaw:CAREGIVER_WAIT.yaw+turn*approach,y:.14,seated:0,door:0,grip,walking:phase==='driverHandoff'&&t>.45?Math.sin(Math.PI*(t-.45)/.55):phase==='aligning'?Math.sin(Math.PI*t):0};
+    yaw:CAREGIVER_WAIT.yaw+turn*approach,y:.14,seated:0,door:0,grip,walking:phase==='driverHandoff'&&t>.45?Math.sin(Math.PI*(t-.45)/.55):0};
 }
-

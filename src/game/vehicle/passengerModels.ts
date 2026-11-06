@@ -33,24 +33,30 @@ export function createPassengerModel(role: 'grandma' | 'grandpa') {
   for (let i = 0; i < 4; i++)ball([.285+i*.025,1.065+(i%2)*.012,.08],.009,skin);
   if (role === 'grandma') {
     ball([0,1.20,-.07],.245,'#ec91b5',[1.12,1,1]);
-    for (const z of [-.17,-.04,.08]) for (let i = 0; i < 9; i++) {
-      const a = i/8*Math.PI;
-      ball([Math.cos(a)*.245,1.12+Math.sin(a)*.25,z],.079,i%2 ? '#f4a9c6' : '#e77fa8');
-      if(z === .08) {
-        const x=Math.cos(a)*.245,y=1.12+Math.sin(a)*.25;
-        curve([[x-.025,y+.015,.151],[x,y+.039,.153],[x+.026,y+.018,.15]],.0025,'#f8bdd4');
+    const scalp = { x: .245 * 1.12, y: .245, z: .245 };
+    const hairColors = ['#f4a9c6', '#e77fa8', '#f8bdd4'];
+    for (const phi of [.22,.52,.82,1.12,1.42,1.72,2.02,2.32]) {
+      const count = Math.max(8, Math.round(18 * Math.sin(phi)));
+      for (let i = 0; i < count; i++) {
+        const theta = i / count * Math.PI * 2;
+        const wrappedTheta = theta > Math.PI ? theta - Math.PI * 2 : theta;
+        if (Math.abs(wrappedTheta) < .95 && phi > 1.22) continue;
+        const x = scalp.x * Math.sin(phi) * Math.sin(theta);
+        const y = 1.20 + scalp.y * Math.cos(phi);
+        const z = -.07 + scalp.z * Math.sin(phi) * Math.cos(theta);
+        const normal = new THREE.Vector3(x / scalp.x ** 2, (y - 1.20) / scalp.y ** 2, (z + .07) / scalp.z ** 2).normalize();
+        const curl = .058 + (i % 3) * .003;
+        add(new THREE.SphereGeometry(curl, 12, 8), hairColors[(i + Math.round(phi * 10)) % hairColors.length],
+          [x + normal.x * .006, y + normal.y * .006, z + normal.z * .006]);
       }
     }
-    for(const x of [-.15,0,.15])for(const y of [1.10,1.21,1.32]){
-      const points: [number,number,number][]=Array.from({length:25},(_,i)=>{
-        const angle=i/24*Math.PI*3.5,r=.033*(1-i/30);
-        const px=x+Math.cos(angle)*r,py=y+Math.sin(angle)*r;
-        const z=-.07-Math.sqrt(Math.max(.003,.245**2-(px/1.12)**2-(py-1.2)**2));
-        return [px,py,z-.003];
-      });
-      curve(points,.0025,'#f8bdd4');
+    for (let i = 0; i < 7; i++) {
+      const x = (i - 3) * .047;
+      const y = 1.27 - Math.abs(i - 3) * .004;
+      const z = .02 + .215 * Math.sqrt(1 - (x / .226) ** 2 - ((y - 1.105) / .226) ** 2) + .018;
+      add(new THREE.SphereGeometry(.052, 14, 10), hairColors[i % hairColors.length], [x, y, z]);
     }
-    for (const side of [-1,1]) ring([side*.095,1.15,.256],.075,.012,'#ac294d');
+    for(const side of [-1,1]) ring([side*.095,1.15,.256],.075,.012,'#ac294d');
     box([0,1.15,.256],[.045,.018,.018],'#ac294d');
     for(const side of [-1,1])tube([side*.164,1.15,.252],[side*.235,1.15,.09],.006,'#ac294d');
     for (let i = 0; i < 7; i++) { const a = i/6*Math.PI; ball([Math.cos(a)*.14,.88-Math.sin(a)*.045,.15],.018,'#fff5df'); }

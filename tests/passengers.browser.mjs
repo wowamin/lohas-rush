@@ -24,6 +24,7 @@ try {
         operating:scene.getObjectByName('driver-helper').userData.operating,elbow:scene.getObjectByName('driver-elbow-right')?.rotation.x,
         gripping:scene.getObjectByName('driver-helper').userData.gripping,steps:scene.getObjectByName('driver-rear-steps').visible,
         caregiver:scene.getObjectByName('caregiver-helper').position.toArray(),caregiverGrip:scene.getObjectByName('caregiver-helper').userData.grip,
+        caregiverPushing:scene.getObjectByName('caregiver-helper').userData.pushing,
         driverDoor:model.getObjectByName('driverDoor')?.rotation.y,panel:scene.getObjectByName('lift-control-panel').visible,
         deck:scene.getObjectByName('wheelchair-lift').position.y,fold:scene.getObjectByName('wheelchair-lift').rotation.x,deckLength:scene.getObjectByName('wheelchair-lift').scale.z*1.8,
         car:model.parent.position.toArray(),grandmaMeshes:a.children[0]?.children.length,grandpaMeshes:b.children[0]?.children.length };
@@ -98,7 +99,17 @@ try {
       await page.locator('#passenger-review').evaluate(canvas=>canvas.remove());
     }
     if (fallback) await action.tap(); else await action.click();
+    await expect(page.locator('.passenger-status strong')).toHaveText('照服員靠近並對準輪椅',{timeout:15000});
+    await expect.poll(async()=>(await sceneState()).caregiverGrip).toBe(1);
+    await expect(page.locator('.passenger-status strong')).toHaveText('照服員推奶奶上升降平台',{timeout:15000});
+    const caregiverBoarding=await sceneState();
+    assert.equal(caregiverBoarding.caregiverPushing,true);
+    assert.ok(Math.abs(caregiverBoarding.caregiver[2]-caregiverBoarding.grandma[2]-.72)<1e-5);
+    await expect(page.locator('.passenger-status strong')).toHaveText('照服員退開，司機準備操作升降平台',{timeout:15000});
     await expect(page.locator('.passenger-status strong')).toHaveText('平台上升中',{timeout:15000});
+    const platformReady=await sceneState();
+    assert.equal(platformReady.caregiverPushing,false);
+    assert.deepEqual(platformReady.caregiver,[1.55,.14,4.5]);
     const raising=await sceneState(); assert.deepEqual(raising.grandpa,initial.grandpa); assert.ok(Math.abs(raising.grandma[1]-raising.deck)<.00001);
     await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內',{timeout:60000});
     await expect(page.locator('.camera-switch')).toHaveText('鏡頭：跟車');

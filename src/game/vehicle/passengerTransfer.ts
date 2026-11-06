@@ -7,7 +7,7 @@ export const transferDurations = {
   driverExit:1.5, driverWalk:1.8, driverReturn:1.8, driverEnter:1.5,
   opening: 1, deploying: 1.2, driverClimb:2.8, driverGrip:.6, rollingOut:3, driverSecure:.6, driverStepDown:2.2, lowering: 1.4,
   driverDeckApproach:1.6, driverDeckGrip:.6, exiting:2.4, driverGroundStop:.5, driverHandoff:1.6, driverBackToControls:1.7,
-  aligning: .8, boarding: 1.4, raising: 1.4, driverBoard:2.2, driverGripIn:.6, rollingIn:3, driverRelease:.6, driverLeave:2.8, folding: 1.2, closing: 1,
+  aligning: .8, boarding: 1.4, caregiverClear:1, raising: 1.4, driverBoard:2.2, driverGripIn:.6, rollingIn:3, driverRelease:.6, driverLeave:2.8, folding: 1.2, closing: 1,
 } as const;
 export type TransferPhase = 'stowed' | 'outside' | keyof typeof transferDurations;
 export const transferLabels: Record<TransferPhase, string> = {
@@ -15,13 +15,13 @@ export const transferLabels: Record<TransferPhase, string> = {
   stowed: '兩位乘客在車內', opening: '後車門開啟中', deploying: '升降平台展開中',
   driverClimb:'司機踩上平台進入車廂', driverGrip:'司機握妥輪椅把手', rollingOut: '司機協助奶奶移至平台', driverSecure:'司機固定輪椅', driverStepDown:'司機離開平台準備下降', lowering: '平台下降中',
   driverDeckApproach:'司機走上落地平台', driverDeckGrip:'司機握妥輪椅準備拉出', exiting:'司機將奶奶拉至地面', driverGroundStop:'司機將輪椅停穩', driverHandoff:'照服員接手輪椅', driverBackToControls:'司機退回控制台',
-  outside: '操控奶奶輪椅・爺爺留在車內', aligning: '輪椅對準升降平台', boarding: '奶奶返回平台', raising: '平台上升中',
-  driverBoard:'司機踩上平台協助上車', driverGripIn:'司機握妥輪椅準備推入', rollingIn: '司機推奶奶返回車廂', driverRelease:'司機安置輪椅', driverLeave:'司機離開車廂與平台', folding: '收起升降平台', closing: '後車門關閉中',
+  outside: '操控奶奶輪椅・爺爺留在車內', aligning: '照服員靠近並對準輪椅', boarding: '照服員推奶奶上升降平台', caregiverClear:'照服員退開，司機準備操作升降平台', raising: '平台上升中',
+  driverBoard:'司機踩上平台協助上車', driverGripIn:'司機握妥輪椅準備推入', rollingIn: '司機大哥推奶奶上車板', driverRelease:'司機將奶奶安置在車廂地板', driverLeave:'司機走樓梯下車', folding: '司機操作升降平台收起', closing: '後車門關閉中',
 };
 const next: Partial<Record<TransferPhase, TransferPhase>> = {
   driverExit:'driverWalk',driverWalk:'opening',driverReturn:'driverEnter',driverEnter:'stowed',
   opening:'deploying', deploying:'driverClimb', driverClimb:'driverGrip', driverGrip:'rollingOut', rollingOut:'driverSecure', driverSecure:'driverStepDown', driverStepDown:'lowering', lowering:'driverDeckApproach', driverDeckApproach:'driverDeckGrip', driverDeckGrip:'exiting', exiting:'driverGroundStop', driverGroundStop:'driverHandoff', driverHandoff:'driverBackToControls', driverBackToControls:'outside',
-  aligning:'boarding', boarding:'raising', raising:'driverBoard', driverBoard:'driverGripIn', driverGripIn:'rollingIn', rollingIn:'driverRelease', driverRelease:'driverLeave', driverLeave:'folding', folding:'closing', closing:'driverReturn',
+  aligning:'boarding', boarding:'caregiverClear', caregiverClear:'raising', raising:'driverBoard', driverBoard:'driverGripIn', driverGripIn:'rollingIn', rollingIn:'driverRelease', driverRelease:'driverLeave', driverLeave:'folding', folding:'closing', closing:'driverReturn',
 };
 const ease = (t: number) => { const x = Math.max(0, Math.min(1, t)); return x*x*(3-2*x); };
 const lerp = (a: number, b: number, t: number) => a + (b-a)*t;
@@ -46,6 +46,8 @@ export function transferPose(phase: TransferPhase, progress = 0): TransferPose {
     pose.deckY = lerp(.75, .14, phase === 'lowering' ? t : 1-t); pose.grandmaY = pose.deckY;
   } else if (phase==='driverDeckApproach'||phase==='driverDeckGrip') {
     pose.deckY=.14;pose.grandmaY=.14;
+  } else if (phase==='caregiverClear') {
+    pose.deckY=.14;pose.grandmaY=.14;pose.grandmaZ=2.75;
   } else {
     pose.deckY = .14; pose.grandmaY = .14;
     pose.grandmaZ = ['outside','aligning','driverGroundStop','driverHandoff','driverBackToControls'].includes(phase) ? 4.5 : phase==='exiting'?groundWheelchairPosition(progress).z:lerp(4.5,2.75,t);

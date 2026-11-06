@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Box3 } from 'three';
-import { PassengerTransfer, transferPose, transferDurations, transferAreaClear } from '../src/game/vehicle/passengerTransfer.ts';
+import { PassengerTransfer, transferPose, transferDurations, transferAreaClear, transferLabels } from '../src/game/vehicle/passengerTransfer.ts';
+import { driverPose } from '../src/game/vehicle/driverAssistance.ts';
 import { createPassengerModel } from '../src/game/vehicle/passengerModels.ts';
 import { createServiceVanFallback } from '../src/game/vehicle/serviceVan.ts';
 import { createVehicle, STEP } from '../src/game/vehicle/drivingPhysics.ts';
@@ -39,13 +40,59 @@ test('boarding reverses path, raises occupied platform, folds and closes before 
   for (let i=0;i<4000 && machine.locked;i++) {
     const before = machine.phase; machine.step(STEP); if (machine.phase !== before) phases.push(machine.phase);
   }
-  assert.deepEqual(phases,['aligning','boarding','raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter','stowed']);
+  assert.deepEqual(phases,['aligning','boarding','caregiverClear','raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter','stowed']);
   assert.equal(machine.pose.grandmaInside,true); assert.equal(machine.pose.hatch,0);
   assert.equal(machine.pose.fold,1); assert.equal(machine.pose.grandmaYaw,Math.PI);
 });
 
+test('driver grips and pushes grandma continuously from the lift into the cabin', () => {
+  const approach = driverPose('driverBoard',1), gripping = driverPose('driverGripIn',0);
+  assert.deepEqual([approach.x,approach.y,approach.z],[gripping.x,gripping.y,gripping.z]);
+  assert.equal(transferPose('driverGripIn',0).grandmaZ,2.75);
+  let previousZ=Infinity;
+  for (const progress of [0,.25,.5,.75,1]) {
+    const chair=transferPose('rollingIn',progress), driver=driverPose('rollingIn',progress);
+    assert.ok(chair.grandmaZ<previousZ,'wheelchair moves inward toward the cabin');
+    assert.equal(driver.x,chair.grandmaX);
+    assert.equal(driver.y,.75);
+    assert.ok(Math.abs(driver.z-chair.grandmaZ-.56)<1e-9,'driver remains behind the wheelchair handles');
+    assert.equal(driver.grip,1,'driver keeps both hands on the wheelchair');
+    previousZ=chair.grandmaZ;
+  }
+  const seated=transferPose('driverRelease',0), released=driverPose('driverRelease',0);
+  assert.equal(seated.grandmaInside,true);
+  assert.ok(Math.abs(released.z-seated.grandmaZ-.56)<1e-9);
+});
+
+test('boarding labels and driver actions show caregiver staging before lift operation', () => {
+  const machine = new PassengerTransfer(); machine.request(createVehicle()); advance(machine,'outside');
+  machine.request(createVehicle());
+  for (const phase of ['driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter']) {
+    advance(machine,phase);
+    if (phase === 'rollingIn') {
+      assert.equal(transferLabels[phase],'司機大哥推奶奶上車板');
+      assert.ok(driverPose(phase,.5).grip>0);
+    } else if (phase === 'driverRelease') {
+      assert.equal(transferLabels[phase],'司機將奶奶安置在車廂地板');
+      assert.equal(machine.pose.grandmaInside,true);
+    } else if (phase === 'driverLeave') {
+      assert.equal(transferLabels[phase],'司機走樓梯下車');
+      assert.ok(driverPose(phase,.5).walking>0);
+      assert.ok(driverPose(phase,.5).y<.75);
+    } else if (phase === 'folding') {
+      assert.equal(transferLabels[phase],'司機操作升降平台收起');
+      const operating=driverPose(phase,.5);
+      assert.equal(operating.operate,1);
+      assert.deepEqual([operating.x,operating.y,operating.z],[-1.3,.14,2.6]);
+    }
+    const following = ['driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter'];
+    const index=following.indexOf(phase);
+    if(index<following.length-1)advance(machine,following[index+1]);
+  }
+});
+
 test('poses are continuous at every phase boundary and reset is deterministic at all stages', () => {
-  const order = ['stowed','driverExit','driverWalk','opening','deploying','driverClimb','driverGrip','rollingOut','driverSecure','driverStepDown','lowering','driverDeckApproach','driverDeckGrip','exiting','driverGroundStop','driverHandoff','driverBackToControls','outside','aligning','boarding','raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter','stowed'];
+  const order = ['stowed','driverExit','driverWalk','opening','deploying','driverClimb','driverGrip','rollingOut','driverSecure','driverStepDown','lowering','driverDeckApproach','driverDeckGrip','exiting','driverGroundStop','driverHandoff','driverBackToControls','outside','aligning','boarding','caregiverClear','raising','driverBoard','driverGripIn','rollingIn','driverRelease','driverLeave','folding','closing','driverReturn','driverEnter','stowed'];
   for (let i=0;i<order.length-1;i++) {
     const a = transferPose(order[i],1), b = transferPose(order[i+1],0);
     for (const key of ['hatch','fold','deckY','grandmaX','grandmaY','grandmaZ','grandmaYaw']) assert.ok(Math.abs(a[key]-b[key])<1e-8, `${order[i]} -> ${order[i+1]}: ${key}`);

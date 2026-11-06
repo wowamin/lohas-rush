@@ -19,8 +19,24 @@ test('caregiver remains behind the chair at every heading and smoothly takes/rel
     assert.ok(Math.abs(Math.sin(pose.yaw-chair.yaw))<1e-8);
     const handoff=caregiverPose('driverHandoff',1,chair),release=caregiverPose('aligning',0,chair);
     for(const key of Object.keys(pose)){assert.ok(Math.abs(handoff[key]-pose[key])<1e-8);assert.ok(Math.abs(release[key]-pose[key])<1e-8);}
-    const wait=caregiverPose('aligning',1,chair);assert.equal(wait.x,CAREGIVER_WAIT.x);assert.equal(wait.z,CAREGIVER_WAIT.z);assert.equal(wait.grip,0);
+    const aligned=caregiverPose('aligning',1,chair),alignedBehind=caregiverBehind(chair.x,chair.z,chair.yaw);
+    assert.equal(aligned.x,alignedBehind.x);assert.equal(aligned.z,alignedBehind.z);assert.equal(aligned.grip,1);
   }
+});
+
+test('caregiver pushes grandma onto the lift and clears the platform before the driver raises it',()=>{
+  const chair={x:0,z:4.5,yaw:Math.PI};
+  const aligned=caregiverPose('aligning',1,chair),boardingChair={x:0,z:2.75,yaw:Math.PI};
+  const pushing=caregiverPose('boarding',.5,{x:0,z:3.625,yaw:Math.PI});
+  assert.equal(aligned.grip,1);assert.equal(pushing.grip,1);
+  assert.ok(Math.abs(pushing.z-4.345)<1e-9);
+  const boardingEnd=caregiverPose('boarding',1,boardingChair);
+  const clearingStart=caregiverPose('caregiverClear',0,boardingChair);
+  assert.deepEqual([clearingStart.x,clearingStart.z,clearingStart.grip],[boardingEnd.x,boardingEnd.z,boardingEnd.grip]);
+  const clear=caregiverPose('caregiverClear',1,boardingChair);
+  assert.deepEqual([clear.x,clear.z,clear.grip],[CAREGIVER_WAIT.x,CAREGIVER_WAIT.z,0]);
+  const machine=new PassengerTransfer();machine.phase='caregiverClear';
+  assert.deepEqual([machine.pose.grandmaX,machine.pose.grandmaY,machine.pose.grandmaZ],[0,.14,2.75]);
 });
 
 test('caregiver waits until grandma reaches the ground and the driver steps aside',()=>{
