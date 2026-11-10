@@ -1,0 +1,284 @@
+{
+  "passed": true,
+  "sourceHashUnchanged": true,
+  "referencePhotoUnchanged": true,
+  "architectureComparisonObjects": 110,
+  "assets": [
+    {
+      "file": "building_refined.glb",
+      "bytes": 5222280,
+      "triangles": 86963,
+      "materials": 22,
+      "meshNodes": 117,
+      "uniqueMeshes": 112,
+      "scenes": [
+        "01_Refined_LOD0"
+      ],
+      "images": [
+        {
+          "name": "plaster_normal_256",
+          "mime": "image/png",
+          "bytes": 112408,
+          "pngSize": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "plaster_orm_256",
+          "mime": "image/png",
+          "bytes": 50683,
+          "pngSize": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "tile_normal_512",
+          "mime": "image/png",
+          "bytes": 146317,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "tile_basecolor_512",
+          "mime": "image/png",
+          "bytes": 232865,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "tile_orm_512",
+          "mime": "image/png",
+          "bytes": 6455,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "Runtime_Image_1_1024",
+          "mime": "image/jpeg",
+          "bytes": 174366
+        },
+        {
+          "name": "Runtime_Image_0_1024",
+          "mime": "image/jpeg",
+          "bytes": 394601
+        },
+        {
+          "name": "Runtime_Image_3_1024",
+          "mime": "image/jpeg",
+          "bytes": 185414
+        }
+      ],
+      "extensionsUsed": [
+        "KHR_materials_transmission",
+        "KHR_materials_ior"
+      ],
+      "requiredExtensions": [],
+      "architectureIdenticalAcrossLODs": true
+    },
+    {
+      "file": "building_refined_lod1.glb",
+      "bytes": 4849852,
+      "triangles": 65131,
+      "materials": 22,
+      "meshNodes": 117,
+      "uniqueMeshes": 112,
+      "scenes": [
+        "02_Refined_LOD1"
+      ],
+      "images": [
+        {
+          "name": "plaster_normal_256",
+          "mime": "image/png",
+          "bytes": 112408,
+          "pngSize": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "plaster_orm_256",
+          "mime": "image/png",
+          "bytes": 50683,
+          "pngSize": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "tile_normal_512",
+          "mime": "image/png",
+          "bytes": 146317,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "tile_basecolor_512",
+          "mime": "image/png",
+          "bytes": 232865,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "tile_orm_512",
+          "mime": "image/png",
+          "bytes": 6455,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "Runtime_Image_1_1024",
+          "mime": "image/jpeg",
+          "bytes": 174366
+        },
+        {
+          "name": "Runtime_Image_0_1024",
+          "mime": "image/jpeg",
+          "bytes": 394601
+        },
+        {
+          "name": "Runtime_Image_3_1024",
+          "mime": "image/jpeg",
+          "bytes": 185414
+        }
+      ],
+      "extensionsUsed": [
+        "KHR_materials_transmission",
+        "KHR_materials_ior"
+      ],
+      "requiredExtensions": [],
+      "architectureIdenticalAcrossLODs": true,
+      "shadingPrecision": {
+        "uv": 0.0000019073486328125,
+        "tangent": 0.00019999999494757503
+      }
+    },
+    {
+      "file": "building_refined_lod2.glb",
+      "bytes": 4505056,
+      "triangles": 52431,
+      "materials": 22,
+      "meshNodes": 117,
+      "uniqueMeshes": 112,
+      "scenes": [
+        "03_Refined_LOD2"
+      ],
+      "images": [
+        {
+          "name": "plaster_normal_256",
+          "mime": "image/png",
+          "bytes": 112408,
+          "pngSize": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "plaster_orm_256",
+          "mime": "image/png",
+          "bytes": 50683,
+          "pngSize": [
+            256,
+            256
+          ]
+        },
+        {
+          "name": "tile_normal_512",
+          "mime": "image/png",
+          "bytes": 146317,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "tile_basecolor_512",
+          "mime": "image/png",
+          "bytes": 232865,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "tile_orm_512",
+          "mime": "image/png",
+          "bytes": 6455,
+          "pngSize": [
+            512,
+            512
+          ]
+        },
+        {
+          "name": "Runtime_Image_1_1024",
+          "mime": "image/jpeg",
+          "bytes": 174366
+        },
+        {
+          "name": "Runtime_Image_0_1024",
+          "mime": "image/jpeg",
+          "bytes": 394601
+        },
+        {
+          "name": "Runtime_Image_3_1024",
+          "mime": "image/jpeg",
+          "bytes": 185414
+        }
+      ],
+      "extensionsUsed": [
+        "KHR_materials_transmission",
+        "KHR_materials_ior"
+      ],
+      "requiredExtensions": [],
+      "architectureIdenticalAcrossLODs": true,
+      "shadingPrecision": {
+        "uv": 0.0000019073486328125,
+        "tangent": 0.00019999999494757503
+      }
+    }
+  ],
+  "browser": {
+    "loaded": [
+      {
+        "file": "building_refined.glb",
+        "meshes": 117,
+        "triangles": 86963,
+        "textures": 15
+      },
+      {
+        "file": "building_refined_lod1.glb",
+        "meshes": 117,
+        "triangles": 65131,
+        "textures": 15
+      },
+      {
+        "file": "building_refined_lod2.glb",
+        "meshes": 117,
+        "triangles": 52431,
+        "textures": 15
+      }
+    ],
+    "lodSwitches": [
+      0,
+      1,
+      2
+    ],
+    "drawCalls": 204,
+    "webgl": "WebGL2",
+    "threeRevision": "175"
+  },
+  "browserErrors": []
+}

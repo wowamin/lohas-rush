@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildings } from '../data/city';
 import { disposeModels } from './assets/GameAssets';
+import { architecturalSurface, createSurface } from './rendering/materials';
 
 type Surface = 'concrete' | 'wall' | 'trim' | 'glass' | 'louver' | 'steel' | 'canopy' | 'paving' | 'green';
 type Point = [number, number, number];
@@ -101,14 +102,10 @@ function createDaiheBuilding() {
   for (const [surface, geometries] of batches) {
     const geometry = mergeGeometries(geometries);
     geometries.forEach(item => item.dispose());
-    const material = new THREE.MeshStandardMaterial({
-      color: colors[surface],
-      roughness: surface === 'glass' ? 0.3 : 0.85,
-      metalness: surface === 'steel' || surface === 'canopy' ? 0.35 : 0,
-    });
+    const material = createSurface(architecturalSurface(surface),{color:colors[surface]});
     const mesh = new THREE.Mesh(geometry, material);
     mesh.name = `daihe-center-${surface}`;
-    mesh.castShadow = true;
+    mesh.castShadow = surface!=='glass';
     mesh.receiveShadow = true;
     root.add(mesh);
   }

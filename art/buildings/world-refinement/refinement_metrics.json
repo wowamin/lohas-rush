@@ -1,0 +1,131 @@
+{
+  "source_sha256": "961fb0671221430d55be14941839df96b48e58164e380b31558942d57cfbd71b",
+  "source_unchanged": true,
+  "original_scene_verified_meshes": 84,
+  "deduplicated_object_mesh_links": 5,
+  "exports": [
+    {
+      "file": "building_refined.glb",
+      "bytes": 5222280,
+      "sha256": "3bce9effc94678d06311706d684bb35133d2c0c33c096ee04a9f6df70f94e6f4",
+      "exported_materials": 22,
+      "exported_images": 8,
+      "exported_meshes": 112,
+      "mesh_objects": 117,
+      "vertices_evaluated": 129946,
+      "triangles_evaluated": 86963,
+      "materials": 20,
+      "shared_mesh_datablocks": 112
+    },
+    {
+      "file": "building_refined_lod1.glb",
+      "bytes": 4849852,
+      "sha256": "a61751b5f37844e3efbe8a6253643f5c587a2d11666d21b94ca9558cb50dd487",
+      "exported_materials": 22,
+      "exported_images": 8,
+      "exported_meshes": 112,
+      "mesh_objects": 117,
+      "vertices_evaluated": 109302,
+      "triangles_evaluated": 65131,
+      "materials": 20,
+      "shared_mesh_datablocks": 112
+    },
+    {
+      "file": "building_refined_lod2.glb",
+      "bytes": 4505056,
+      "sha256": "fb14403b3643a7fb871697f07c7c3efe7e22bd22433a145a090bb83d7307b508",
+      "exported_materials": 22,
+      "exported_images": 8,
+      "exported_meshes": 112,
+      "mesh_objects": 117,
+      "vertices_evaluated": 96734,
+      "triangles_evaluated": 52431,
+      "materials": 20,
+      "shared_mesh_datablocks": 112
+    }
+  ],
+  "lod_surface_measurements": {
+    "LOD1": [
+      {
+        "source": "tripo_node_40f33689-19e3-4f47-af31-3b40153ef03f",
+        "requested_ratio": 0.72,
+        "sample_count": 4813,
+        "max_local_surface_distance": 0.0017852066084742546,
+        "p95_local_surface_distance": 0.0001913922722451387,
+        "max_distance_fraction_of_span": 0.0017887001634810536,
+        "accepted": true
+      },
+      {
+        "source": "tripo_node_ea4b5c3e-d929-4ee4-b03d-87afa3dcea7c",
+        "requested_ratio": 0.55,
+        "sample_count": 4612,
+        "max_local_surface_distance": 0.025774825364351273,
+        "p95_local_surface_distance": 0.003994897822849451,
+        "max_distance_fraction_of_span": 0.02582526533571008,
+        "accepted": true
+      }
+    ],
+    "LOD2": [
+      {
+        "source": "tripo_node_40f33689-19e3-4f47-af31-3b40153ef03f",
+        "requested_ratio": 0.5,
+        "sample_count": 5023,
+        "max_local_surface_distance": 0.007138868793845177,
+        "p95_local_surface_distance": 0.0010761200333945418,
+        "max_distance_fraction_of_span": 0.007152839182874228,
+        "accepted": true
+      },
+      {
+        "source": "tripo_node_ea4b5c3e-d929-4ee4-b03d-87afa3dcea7c",
+        "requested_ratio": 0.3,
+        "sample_count": 4254,
+        "max_local_surface_distance": 0.05582012981176376,
+        "p95_local_surface_distance": 0.011124648246914148,
+        "max_distance_fraction_of_span": 0.05592936685640518,
+        "accepted": true
+      }
+    ]
+  },
+  "changes": [
+    "Replaced two opaque balcony blocks and three solid guard screens with editable slabs, tile surfaces and dense vertical metal guards. Balcony footprints and source guard heights retained."
+  ],
+  "manual_review_objects": [
+    "Mesh_32",
+    "Mesh_33",
+    "primitive-base-mesh.006",
+    "primitive-base-mesh.007",
+    "primitive-base-mesh.013"
+  ],
+  "reference_photo": {
+    "path": "public\\ChatGPT Image 2026年9月21日 下午04_12_52.png",
+    "sha256": "defe7d3b0c918febda3f6ba8a15b59f74d19150aad903d734cbb2e4509b08a19",
+    "role": "Primary supplied architectural photograph; front and right facades visible"
+  },
+  "architectural_lod_policy": "No architectural decimation at any LOD; only tree and repeated small plants are simplified.",
+  "runtime_atlases": [
+    {
+      "name": "Runtime_Image_0_1024",
+      "size": [
+        1024,
+        1024
+      ],
+      "encoding": "JPEG"
+    },
+    {
+      "name": "Runtime_Image_1_1024",
+      "size": [
+        1024,
+        1024
+      ],
+      "encoding": "JPEG"
+    },
+    {
+      "name": "Runtime_Image_3_1024",
+      "size": [
+        1024,
+        1024
+      ],
+      "encoding": "JPEG"
+    }
+  ]
+}

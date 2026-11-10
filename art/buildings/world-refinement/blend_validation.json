@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "original_meshes_verified": 84,
+  "original_materials_verified": 84,
+  "original_packed_images_verified": 4,
+  "unchanged_manual_review_objects": [
+    "Mesh_32",
+    "Mesh_33",
+    "primitive-base-mesh.006",
+    "primitive-base-mesh.007",
+    "primitive-base-mesh.013"
+  ],
+  "main_masses_base_geometry_and_world_matrices_preserved": true,
+  "live_recess_and_bevel_modifiers": true,
+  "source_file_hash_unchanged": true,
+  "scenes": [
+    "00_Original_Reference",
+    "01_Refined_LOD0",
+    "02_Refined_LOD1",
+    "03_Refined_LOD2"
+  ]
+}

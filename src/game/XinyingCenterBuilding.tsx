@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildings } from '../data/city';
 import { disposeModels } from './assets/GameAssets';
+import { architecturalSurface, createSurface } from './rendering/materials';
 
 type Surface = 'concrete' | 'wall' | 'trim' | 'glass' | 'frame' | 'mesh' | 'sign' | 'roof' | 'paving' | 'green';
 type Point = [number, number, number];
@@ -169,13 +170,9 @@ function createXinyingBuilding() {
   for (const [surface, geometries] of batches) {
     const geometry = mergeGeometries(geometries);
     geometries.forEach(item => item.dispose());
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-      color: colors[surface],
-      roughness: surface === 'glass' ? 0.4 : 0.84,
-      metalness: surface === 'frame' || surface === 'mesh' || surface === 'roof' ? 0.25 : 0,
-    }));
+    const mesh = new THREE.Mesh(geometry, createSurface(architecturalSurface(surface),{color:colors[surface]}));
     mesh.name = `xinying-center-${surface}`;
-    mesh.castShadow = true;
+    mesh.castShadow = surface!=='glass';
     mesh.receiveShadow = true;
     root.add(mesh);
   }

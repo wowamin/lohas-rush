@@ -3,13 +3,15 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildings, HEADQUARTERS_FOOTPRINT_SCALE } from '../data/city';
 import { disposeModels } from './assets/GameAssets';
+import { createSurface } from './rendering/materials';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 type Point = [number, number, number];
-type Surface = 'wall' | 'frame' | 'glass';
+type Surface = 'wall' | 'frame' | 'glass' | 'concrete';
 const headquarters = buildings.find(building => building.id === 'headquarters')!;
 
 // A game-scale interpretation of the supplied white building reference.
-// All repeated windows, balcony bars and trims are merged into three meshes.
+// Repeated windows, balcony bars and trims stay merged by architectural surface.
 function createHeadquartersBuilding() {
   const root = new THREE.Group(), batches = new Map<Surface, THREE.BufferGeometry[]>();
   const white = headquarters.color, trim = '#e7e4dc', dark = '#28323b', glass = '#6b8798';
@@ -21,7 +23,7 @@ function createHeadquartersBuilding() {
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     const batch = batches.get(surface) ?? []; batch.push(geometry); batches.set(surface, batch);
   };
-  const box = (p: Point, size: Point, color: string, surface: Surface = 'wall') => add(new THREE.BoxGeometry(...size), p, color, surface);
+  const box = (p: Point, size: Point, color: string, surface: Surface = 'wall') => add(surface==='wall'?new RoundedBoxGeometry(...size,1,Math.min(.035,Math.min(...size)*.12)):new THREE.BoxGeometry(...size), p, color, surface);
   // White stucco volumes, a taller stair tower, pale plinth and flat roof fascia.
   box([.95, 5.6, 0], [8.1, 10.6, 10], white);
   box([-4.05, 5.75, 0], [1.9, 10.9, 10], white);
@@ -62,7 +64,7 @@ function createHeadquartersBuilding() {
 
   function balcony(x: number, floorY: number, width: number) {
     const front = 5.72, left = x - width / 2, right = x + width / 2;
-    box([x, floorY, 5.28], [width + .18, .20, 1.08], white);
+    box([x, floorY, 5.28], [width + .18, .20, 1.08], '#8a8d8c', 'concrete');
     box([x, floorY + .12, 5.28], [width, .035, .94], trim);
     box([x, floorY + 1.0, front], [width + .06, .055, .055], dark, 'frame');
     box([x, floorY + .24, front], [width + .06, .035, .035], dark, 'frame');
@@ -100,10 +102,9 @@ function createHeadquartersBuilding() {
 
   for (const [surface, shapes] of batches) {
     const geometry = mergeGeometries(shapes); shapes.forEach(shape => shape.dispose());
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ vertexColors: true,
-      roughness: surface === 'glass' ? .27 : surface === 'frame' ? .57 : .9,
-      metalness: surface === 'glass' ? .15 : surface === 'frame' ? .25 : 0 }));
-    mesh.name = `headquarters-${surface}`; mesh.castShadow = true; mesh.receiveShadow = true; root.add(mesh);
+    const material=createSurface(surface==='wall'?'plaster':surface==='frame'?'metal':surface,{vertexColors:true,color:'#ffffff'});
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = `headquarters-${surface}`; mesh.castShadow = surface!=='glass'; mesh.receiveShadow = true; root.add(mesh);
   }
   return root;
 }

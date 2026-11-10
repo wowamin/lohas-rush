@@ -9,6 +9,7 @@ import { CameraBrain } from './CameraBrain';
 import type { CameraBlocker } from './cameraCollision';
 import { WheelchairCameraAvoidance } from './wheelchairCamera';
 import { bindMouseOrbit } from './MouseOrbit';
+import { useVisual } from '../../stores/visual';
 
 const blockers: CameraBlocker[] = [
   ...buildings.map(b => ({ min: { x: b.x - b.halfX, y: 0, z: b.z - b.halfZ }, max: { x: b.x + b.halfX, y: b.height + 0.65, z: b.z + b.halfZ } })),
@@ -19,12 +20,14 @@ export function VehicleCamera({ target, parkedBus }: { target: MutableRefObject<
   const camera = useThree(s => s.camera);
   const canvas=useThree(s=>s.gl.domElement);
   const [brain] = useState(() => new CameraBrain());
+  const viewMode=useVisual(s=>s.viewMode);
   const [chairCamera]=useState(()=>new WheelchairCameraAvoidance());
   const lastReset = useRef(-1);
   const busBlocker=useRef<CameraBlocker>({min:{x:0,y:0,z:0},max:{x:0,y:2.5,z:0}});
   const [chairBlockers]=useState(()=>[...blockers,busBlocker.current]);
-  useEffect(()=>bindMouseOrbit(canvas,brain.orbit,()=>({position:camera.position,target:target.current,aimHeight:brain.aimHeight})),[canvas,brain,camera,target]);
+  useEffect(()=>viewMode==='game'?bindMouseOrbit(canvas,brain.orbit,()=>({position:camera.position,target:target.current,aimHeight:brain.aimHeight})):undefined,[canvas,brain,camera,target,viewMode]);
   useFrame((_, delta) => {
+    if(useVisual.getState().viewMode!=='game')return;
     const { cameraMode: mode, resetKey, transferPhase } = useGame.getState();
     const liveMode = transferPhase === 'outside' ? 'wheelchair' : transferPhase === 'stowed' ? mode : 'service';
     if (lastReset.current !== resetKey) { brain.reset(target.current, liveMode); chairCamera.reset(); lastReset.current = resetKey; }

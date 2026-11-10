@@ -49,6 +49,7 @@ try {
         state.camera.lookAt(-9.1, 1.55, 3.5);
         state.camera.updateMatrixWorld();
       } }, priority: 0 });
+      state.internal.subscribers.sort((a,b)=>a.priority-b.priority);
     });
     await page.addStyleTag({ content: 'header, aside, footer, .drive-caption, .speed-panel, .touch-controls, .passenger-panel, .world-label, .route-map, .destination-strip { display: none !important; }' });
     await page.waitForTimeout(500);
@@ -63,6 +64,7 @@ try {
           state.camera.lookAt(-8.15, 1.3, 3.55);
           state.camera.updateMatrixWorld();
         } }, priority: 0 });
+        state.internal.subscribers.sort((a,b)=>a.priority-b.priority);
       });
       await page.waitForTimeout(250);
       await page.screenshot({ path: '.test-artifacts/chairperson-closeup.png' });

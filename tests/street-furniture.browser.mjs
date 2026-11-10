@@ -24,10 +24,13 @@ try{
       state.camera.position.set(lamp.x+nx*20+nz*18,12,lamp.z+nz*20-nx*18);
       state.camera.lookAt(lamp.x,2.5,lamp.z);state.camera.updateMatrixWorld();
     }},priority:0,store});
-    return {batches,trees,expectedTrees:streetFurniture.filter(f=>f.kind==='tree').length};
+    state.internal.subscribers.sort((a,b)=>a.priority-b.priority);
+    const vegetation=state.scene.getObjectByName('street-vegetation');
+    return {batches,trees,expectedTrees:streetFurniture.filter(f=>f.kind==='tree').length,totalTrees:vegetation?.userData.totalTrees};
   });
-  assert.equal(result.trees,result.expectedTrees,'all roadside trees render in their own trunk batch');
-  assert.ok(result.batches<10,'street furniture preserves instanced rendering');
+  assert.equal(result.totalTrees,result.expectedTrees,'all existing tree positions are retained by the distance-culling system');
+  assert.ok(result.trees>0&&result.trees<=result.expectedTrees,'nearby trunks render in an instanced batch; distant vegetation is culled');
+  assert.ok(result.batches<=16,'PBR surface and vegetation LOD batches remain bounded, independent of fixture count');
   await page.addStyleTag({content:'header,aside,footer,.world-label,.drive-caption,.speed-panel,.route-map,.passenger-panel,.discovery-toast{display:none!important}'});
   await page.waitForTimeout(500);await page.screenshot({path:'.test-artifacts/street-furniture-desktop.png'});
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(300);

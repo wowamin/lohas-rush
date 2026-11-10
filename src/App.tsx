@@ -12,6 +12,11 @@ import { selectVirtualCamera } from './game/camera/virtualCameras';
 import { useGame } from './stores/game';
 import { DrivingGuide, needsDrivingGuide } from './components/DrivingGuide';
 import { ExplorationJournal, ExplorationNotices } from './components/ExplorationJournal';
+import { GraphicsControls } from './components/GraphicsControls';
+import { RenderEffects } from './game/rendering/RenderEffects';
+import { ShowcaseCamera } from './game/rendering/ShowcaseCamera';
+import { useVisual } from './stores/visual';
+import { QUALITY } from './game/rendering/quality';
 
 function supported() {
   try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; }
@@ -84,13 +89,14 @@ function HUD({touch, onHelp, onJournal}:{touch:boolean;onHelp:()=>void;onJournal
   </>;
 }
 export default function App() {
+  const quality=useVisual(s=>s.quality),viewMode=useVisual(s=>s.viewMode);
   const [overlay,setOverlay]=useState<'guide'|'journal'|null>(()=>needsDrivingGuide()?'guide':null);
   const guideOpen=overlay==='guide';
   useLayoutEffect(()=>{
-    useGame.getState().setControlsPaused(overlay!==null);
+    useGame.getState().setControlsPaused(overlay!==null||viewMode==='showcase');
     return ()=>useGame.getState().setControlsPaused(false);
-  },[overlay]);
-  const changeOverlay=(value:'guide'|'journal'|null)=>{useGame.getState().setControlsPaused(value!==null);setOverlay(value);};
+  },[overlay,viewMode]);
+  const changeOverlay=(value:'guide'|'journal'|null)=>{useGame.getState().setControlsPaused(value!==null||viewMode==='showcase');setOverlay(value);};
   const [mobileGraphics, setMobileGraphics] = useState(() => window.matchMedia('(any-pointer: coarse), (max-width: 850px)').matches);
   useEffect(() => {
     const query = window.matchMedia('(any-pointer: coarse), (max-width: 850px)');
@@ -100,5 +106,5 @@ export default function App() {
   }, []);
   const [hasWebGL] = useState(supported);
   const [contextLost, setContextLost] = useState(false);
-  return <main data-guide-state={hasWebGL&&!contextLost&&guideOpen?'open':'closed'}><GraphicsBoundary>{hasWebGL && !contextLost ? <><Canvas shadows={!mobileGraphics} dpr={mobileGraphics ? 1 : [1, 1.5]} gl={{ antialias: !mobileGraphics }} camera={{ position: [SPAWN.x, 9, SPAWN.z + 14], fov: 58, near: 0.1, far: 320 }} fallback={<GraphicsFallback />} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); }, { once: true }); }}><City /><Car lowDetail={mobileGraphics} /></Canvas><HUD touch={mobileGraphics} onHelp={()=>changeOverlay('guide')} onJournal={()=>changeOverlay('journal')} />{guideOpen&&<DrivingGuide touch={mobileGraphics} onClose={()=>changeOverlay(null)} />}{overlay==='journal'&&<ExplorationJournal onClose={()=>changeOverlay(null)} />}<ExplorationNotices /></> : <GraphicsFallback />}</GraphicsBoundary></main>;
+  return <main data-view-mode={viewMode} data-guide-state={hasWebGL&&!contextLost&&guideOpen?'open':'closed'}><GraphicsBoundary>{hasWebGL && !contextLost ? <><Canvas shadows="soft" dpr={[1,QUALITY[quality].dpr]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ position: [SPAWN.x, 9, SPAWN.z + 14], fov: 58, near: 0.1, far: 640 }} fallback={<GraphicsFallback />} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); }, { once: true }); }}><City /><Car lowDetail={quality==='low'} /><ShowcaseCamera /><RenderEffects /></Canvas><HUD touch={mobileGraphics} onHelp={()=>changeOverlay('guide')} onJournal={()=>changeOverlay('journal')} /><GraphicsControls />{guideOpen&&<DrivingGuide touch={mobileGraphics} onClose={()=>changeOverlay(null)} />}{overlay==='journal'&&<ExplorationJournal onClose={()=>changeOverlay(null)} />}<ExplorationNotices /></> : <GraphicsFallback />}</GraphicsBoundary></main>;
 }

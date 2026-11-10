@@ -16,6 +16,7 @@ import { DriverRig } from './vehicle/DriverRig';
 import { CaregiverRig } from './vehicle/CaregiverRig';
 import { TurnSignalLights, type VehicleLightsState } from './vehicle/TurnSignalLights';
 import { explorationStore } from '../stores/exploration';
+import { VehicleContactShadow } from './rendering/VehicleContactShadow';
 
 export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const group = useRef<THREE.Group>(null);
@@ -120,7 +121,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   }, -2);
   return <group ref={group}>
     <VehicleCamera target={cameraTarget} parkedBus={rendered} />
-    {lowDetail && <mesh position={[0, 0.125, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1, 1.65, 1]}><circleGeometry args={[1.55, 24]} /><meshBasicMaterial color="#344b41" transparent opacity={0.18} depthWrite={false} /></mesh>}
+    <VehicleContactShadow subtle={lowDetail} />
     <ServiceVanModel transfer={transfer} />
     <TurnSignalLights state={lights} />
     <PassengerRig transfer={transfer} wheelchair={renderedChair} bus={rendered} />

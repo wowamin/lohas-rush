@@ -8,6 +8,26 @@ export const serviceVanReference = geometry.metadata;
 export const serviceVanFile = 'assets/models/lohas_service_van.glb';
 
 export function prepareServiceVan(model: THREE.Object3D) {
+  if(!model.userData.pbrPrepared){
+    const replacements=new Map<THREE.Material,THREE.Material>();
+    const paints=new Set(['white','blue','pink','yellow','green','teal']);
+    const upgrade=(original:THREE.Material)=>{
+      if(replacements.has(original))return replacements.get(original)!;
+      if(!(original instanceof THREE.MeshStandardMaterial))return original;
+      const name=original.name,paint=paints.has(name),glass=name==='glass'||name==='windshield';
+      const material=new THREE.MeshPhysicalMaterial({name,color:original.color.clone(),side:original.side,
+        vertexColors:original.vertexColors,map:original.map,transparent:original.transparent,opacity:original.opacity,
+        depthWrite:original.depthWrite,roughness:glass?.16:name==='tire'?.96:name==='mirror'?.1:name==='hub'?.24:paint?.34:.65,
+        metalness:name==='mirror'?.92:name==='hub'?.8:paint?.12:0,
+        clearcoat:paint?.55:glass?.75:0,clearcoatRoughness:paint?.25:.14,ior:1.46});
+      if(name==='lamp'||name==='tail'){material.emissive.copy(original.color);material.emissiveIntensity=name==='tail'?.12:.25;}
+      if(name==='glassHighlight'){material.transparent=true;material.opacity=.08;material.depthWrite=false;}
+      replacements.set(original,material);return material;
+    };
+    model.traverse(child=>{if(child instanceof THREE.Mesh)child.material=Array.isArray(child.material)?child.material.map(upgrade):upgrade(child.material);});
+    for(const original of replacements.keys())original.dispose();
+    model.userData.pbrPrepared=true;
+  }
   model.updateMatrixWorld(true);
   let vertices = 0;
   const point = new THREE.Vector3();
