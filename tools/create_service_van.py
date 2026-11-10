@@ -185,10 +185,10 @@ for side in (-1, 1):
     driver_face([(mirror_x-.047,1.653,-1.255),(mirror_x+.047,1.653,-1.255),
                  (mirror_x+.047,1.867,-1.255),(mirror_x-.047,1.867,-1.255)],'mirror',side)
     for z in (-1.3, 1.3):
-        wheels.append({'x': side*1.075, 'y': .56, 'z': z, 'radius': .42, 'width': .25})
-        cylinder_x(side*1.075,.56,z,.42,.25,'tire')
-        cylinder_x(side*1.208,.56,z,.255,.025,'hub')
-        cylinder_x(side*1.226,.56,z,.10,.015,'trim')
+        wheels.append({'x': side*1.075, 'y': .50, 'z': z, 'radius': .50, 'width': .25})
+        cylinder_x(side*1.075,.50,z,.50,.25,'tire')
+        cylinder_x(side*1.208,.50,z,.30,.025,'hub')
+        cylinder_x(side*1.226,.50,z,.12,.015,'trim')
 # Keep the roof bare and white: no rails, crossbars or mounting brackets.
 outer=[(-1.08,1.5,-2.05),(-1.08,2.35,-1.65),(1.08,2.35,-1.65),(1.08,1.5,-2.05)]
 inner=[(-.96,1.59,windshield_z(1.59)),(-.96,2.23,windshield_z(2.23)),(.96,2.23,windshield_z(2.23)),(.96,1.59,windshield_z(1.59))]

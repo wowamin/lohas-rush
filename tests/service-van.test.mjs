@@ -17,12 +17,12 @@ test('actual Blender GLB matches fallback ground/orientation and fully fits coll
   const fallback = createServiceVanFallback();
   const a = new Box3().setFromObject(scene), b = new Box3().setFromObject(fallback);
   for (const key of ['min','max']) for (const axis of ['x','y','z']) assert.ok(Math.abs(a[key][axis] - b[key][axis]) < .00001);
-  assert.ok(a.min.z < -2 && a.max.z > 2 && a.min.y >= .139 && a.max.y < 2.5);
+  assert.ok(a.min.z < -2 && a.max.z > 2 && a.min.y >= -.001 && a.min.y <= .001 && a.max.y < 2.5);
   assert.equal(serviceVanReference.forward, '-Z'); assert.equal(serviceVanReference.up, '+Y');
   assert.equal(serviceVanReference.wheels.length, 4);
   for (const wheel of serviceVanReference.wheels) {
     assert.ok(Math.hypot(Math.abs(wheel.x) + wheel.width/2, Math.abs(wheel.z) + wheel.radius) < CAR_RADIUS);
-    assert.ok(Math.abs(wheel.y - wheel.radius - .14) < 1e-6);
+    assert.ok(Math.abs(wheel.y - wheel.radius) < 1e-6, 'tires meet the ground');
   }
   assert.ok(scene.getObjectByName('van-glass')); assert.ok(scene.getObjectByName('van-tire'));
   assert.ok(scene.getObjectByName('van-blue')); assert.ok(scene.getObjectByName('van-pink'));
