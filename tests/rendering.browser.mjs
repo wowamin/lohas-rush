@@ -11,7 +11,7 @@ try{
   const errors=[],shaderErrors=[],resources=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(m.type()==='error'&&/THREE.WebGLProgram|Shader Error|GL_INVALID|Framebuffer/.test(m.text()))shaderErrors.push(m.text());});
-  page.on('response',r=>{if(/lohas-afternoon\.hdr|lohas_service_van\.glb/.test(r.url()))resources.push({url:r.url(),status:r.status()});});
+  page.on('response',r=>{if(/lohas-afternoon\.hdr|lohas_service_van\.glb|lohas_building_reference\.glb/.test(r.url()))resources.push({url:r.url(),status:r.status()});});
   await page.goto(base);await dismissDrivingGuide(page);
   await page.waitForFunction(()=>window.__LOHAS_RENDERING__?.environment==='ready');
   const inspect=()=>page.evaluate(async()=>{
@@ -20,11 +20,14 @@ try{
     const state=_roots.get(document.querySelector('canvas')).store.getState(),game=useGame.getState();
     const sun=state.scene.children.find(o=>o.isDirectionalLight);
     const surfaceColors=[];state.scene.traverse(o=>{if(o.name.startsWith('city-surface-'))surfaceColors.push({name:o.name,vertexColors:o.material.vertexColors,hasVertexAttribute:!!o.geometry.getAttribute('color'),hasInstanceColors:!!o.instanceColor});});
+    const headquarters=state.scene.getObjectByName('headquarters-reference');
     return{scene:state.scene.uuid,camera:state.camera.position.toArray(),fov:state.camera.fov,environment:!!state.scene.environment,
       colorSpace:state.gl.outputColorSpace,toneMapping:state.gl.toneMapping,shadowSize:sun.shadow.map?.width??sun.shadow.mapSize.x,
       paused:game.controlsPaused,mission:game.missionIndex,reset:game.resetKey,x:game.x,z:game.z,
-      vegetation:state.scene.getObjectByName('street-vegetation')?.userData,surfaceColors,stats:window.__LOHAS_RENDERING__};
+      vegetation:state.scene.getObjectByName('street-vegetation')?.userData,surfaceColors,stats:window.__LOHAS_RENDERING__,
+      headquartersVertices:headquarters?.geometry.getAttribute('position').count??0};
   });
+  await expect.poll(async()=>(await inspect()).headquartersVertices??0,{timeout:30000}).toBeGreaterThan(0);
   const original=await inspect();assert.equal(original.colorSpace,'srgb');assert.equal(original.toneMapping,4);assert(original.environment);
   for(const surface of original.surfaceColors){assert(surface.hasInstanceColors);assert(!surface.vertexColors||surface.hasVertexAttribute,`${surface.name} cannot read a missing vertex color attribute`);}
   await page.getByRole('button',{name:'畫面設定',exact:true}).click();
@@ -60,7 +63,8 @@ try{
   await page.getByLabel('畫質',{exact:true}).selectOption('high');
   const normal=new URL(base);normal.searchParams.delete('quality');await page.goto(normal.href);await dismissDrivingGuide(page);
   await page.getByRole('button',{name:'畫面設定',exact:true}).click();await expect(page.getByLabel('畫質',{exact:true})).toHaveValue('high');
-  assert(resources.some(r=>r.url.includes('.hdr')&&r.status===200));assert(resources.some(r=>r.url.includes('.glb')&&r.status===200));
+  assert(resources.some(r=>r.url.includes('.hdr')&&r.status===200));assert(resources.some(r=>r.url.includes('lohas_service_van.glb')&&r.status===200));
+  assert(resources.some(r=>r.url.includes('lohas_building_reference.glb')&&r.status===200));
   assert.deepEqual(errors,[]);assert.deepEqual(shaderErrors,[]);
   await writeFile('.test-artifacts/rendering/browser-validation.json',JSON.stringify({passed:true,resources,errors,shaderErrors,qualitySwitches:['low','medium','high'],showcaseOrbit:true,capture:true,drivingAfterShowcase:true,preferencePersistence:true},null,2));
   console.log('PASS: HDR/GLB, PBR shaders, live quality, AO/Bloom, showcase/orbit/PNG, pause/restore, driving/braking/reset and persistence.');

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildings, HEADQUARTERS_FOOTPRINT_SCALE } from '../data/city';
 import { disposeModels } from './assets/GameAssets';
@@ -10,8 +11,7 @@ type Point = [number, number, number];
 type Surface = 'wall' | 'frame' | 'glass' | 'concrete';
 const headquarters = buildings.find(building => building.id === 'headquarters')!;
 
-// A game-scale interpretation of the supplied white building reference.
-// Repeated windows, balcony bars and trims stay merged by architectural surface.
+// Retain the former game-scale building as a visible fallback if the reference cannot load.
 function createHeadquartersBuilding() {
   const root = new THREE.Group(), batches = new Map<Surface, THREE.BufferGeometry[]>();
   const white = headquarters.color, trim = '#e7e4dc', dark = '#28323b', glass = '#6b8798';
@@ -109,12 +109,84 @@ function createHeadquartersBuilding() {
   return root;
 }
 
+function createReferenceBuilding(source: THREE.Object3D) {
+  source.updateMatrixWorld(true);
+  const geometries: THREE.BufferGeometry[] = [];
+  source.traverse(child => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const geometry = child.geometry.clone();
+    geometry.applyMatrix4(child.matrixWorld);
+    geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
+    geometries.push(geometry);
+  });
+  if (!geometries.length) throw new Error('The headquarters reference model contains no meshes.');
+
+  let geometry: THREE.BufferGeometry | null;
+  try {
+    geometry = mergeGeometries(geometries, false);
+  } finally {
+    geometries.forEach(item => item.dispose());
+  }
+  if (!geometry) throw new Error('Unable to merge the headquarters reference model meshes.');
+
+  geometry.computeBoundingBox();
+  const bounds = geometry.boundingBox;
+  if (!bounds) {
+    geometry.dispose();
+    throw new Error('Unable to measure the headquarters reference model.');
+  }
+  const size = bounds.getSize(new THREE.Vector3());
+  const footprintArea = headquarters.halfX * 2 * headquarters.halfZ * 2;
+  const scale = Math.sqrt(footprintArea / (size.x * size.z));
+  geometry.scale(scale, scale, scale);
+  geometry.computeBoundingBox();
+  const scaledBounds = geometry.boundingBox;
+  if (!scaledBounds) {
+    geometry.dispose();
+    throw new Error('Unable to measure the scaled headquarters reference model.');
+  }
+  const center = scaledBounds.getCenter(new THREE.Vector3());
+  geometry.translate(-center.x, -scaledBounds.min.y, -center.z);
+
+  const mesh = new THREE.Mesh(geometry, createSurface('plaster', { vertexColors: true }));
+  mesh.name = 'headquarters-reference';
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
 export function HeadquartersBuilding() {
   const host = useRef<THREE.Group>(null);
   useEffect(() => {
-    const container = host.current!, model = createHeadquartersBuilding(); container.add(model);
-    return () => { container.remove(model); disposeModels([model]); };
+    const container = host.current!;
+    let alive = true;
+    let model: THREE.Object3D | undefined;
+    void new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}lohas_building_reference.glb`).then(gltf => {
+      if (!alive) {
+        disposeModels([gltf.scene]);
+        return;
+      }
+      try {
+        model = createReferenceBuilding(gltf.scene);
+      } finally {
+        disposeModels([gltf.scene]);
+      }
+      container.add(model);
+    }).catch(error => {
+      if (!alive) return;
+      console.error('Failed to load the headquarters reference model; using the procedural fallback.', error);
+      model = createHeadquartersBuilding();
+      model.scale.set(HEADQUARTERS_FOOTPRINT_SCALE, 1, HEADQUARTERS_FOOTPRINT_SCALE);
+      container.add(model);
+    });
+    return () => {
+      alive = false;
+      if (model) {
+        container.remove(model);
+        disposeModels([model]);
+      }
+    };
   }, []);
-  return <group ref={host} name="headquarters-white-building" position={[headquarters.x, 0, headquarters.z]}
-    scale={[HEADQUARTERS_FOOTPRINT_SCALE, 1, HEADQUARTERS_FOOTPRINT_SCALE]} />;
+  return <group ref={host} name="headquarters-reference-building" position={[headquarters.x, 0, headquarters.z]} />;
 }

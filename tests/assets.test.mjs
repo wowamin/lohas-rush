@@ -1,11 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { BoxGeometry, Mesh, MeshStandardMaterial, Group, Box3, Vector3 } from 'three';
 import { GameAssets } from '../src/game/assets/GameAssets.ts';
 import { TrackManager } from '../src/game/assets/TrackManager.ts';
 import { modelUrl, assetKeys } from '../src/game/assets/modelManifest.ts';
+import { buildings } from '../src/data/city.ts';
 
 const cube = () => new Mesh(new BoxGeometry(2, 2, 2), new MeshStandardMaterial());
+test('headquarters reference is the supplied Z-up GLB and its collision footprint matches its proportions', async () => {
+  const bytes = await readFile(new URL('../public/lohas_building_reference.glb', import.meta.url));
+  assert.equal(bytes.toString('ascii', 0, 4), 'glTF');
+  const jsonLength = bytes.readUInt32LE(12);
+  const gltf = JSON.parse(bytes.toString('utf8', 20, 20 + jsonLength));
+  assert.ok(gltf.nodes.some(node => node.name === 'main_white_3storey'));
+  assert.ok(gltf.nodes.some(node => node.name === 'tower_four_storey'));
+
+  const positions = gltf.meshes.map(mesh => gltf.accessors[mesh.primitives[0].attributes.POSITION]);
+  const bounds = [0, 1, 2].map(axis => [
+    Math.min(...positions.map(attribute => attribute.min[axis])),
+    Math.max(...positions.map(attribute => attribute.max[axis])),
+  ]);
+  const headquarters = buildings.find(building => building.id === 'headquarters');
+  assert.ok(headquarters);
+  const width = bounds[0][1] - bounds[0][0];
+  const depth = bounds[1][1] - bounds[1][0];
+  assert.ok(Math.abs((headquarters.halfX / headquarters.halfZ) / (width / depth) - 1) < 1e-4);
+  assert.ok(Math.abs((headquarters.halfX * 2 * headquarters.halfZ * 2) / 100 - 1.3) < 1e-12);
+});
+
 test('optional assets load once, honor deployment base and fit shadow-enabled clones', async () => {
   const urls = [], sources = [];
   const assets = new GameAssets({ base: '/lohas-rush/', load: async url => { urls.push(url); const mesh = cube(); sources.push(mesh); return mesh; } });
