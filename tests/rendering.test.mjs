@@ -5,10 +5,18 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { SRGBColorSpace, NoColorSpace } from 'three';
 import { QUALITY } from '../src/game/rendering/quality.ts';
 import { createSurface } from '../src/game/rendering/materials.ts';
+import { spatialBatches } from '../src/game/rendering/spatialBatches.ts';
+
+test('static scenery cells retain every instance once across positive and negative boundaries',()=>{
+  const items=[[-129,0,-1],[-128,0,0],[-.01,0,127],[0,0,128],[127,0,127],[128,0,-128]].map(position=>({position}));
+  const batches=spatialBatches(items);
+  const output=[...batches.values()].flat();assert.equal(output.length,items.length);assert.equal(new Set(output).size,items.length);
+  assert(batches.get('-2,-1').includes(items[0]));assert(batches.get('1,-1').includes(items[5]));
+  assert.deepEqual(items[0].position,[-129,0,-1]);assert.throws(()=>spatialBatches(items,0),/positive/);
+});
 
 test('quality budgets increase without architectural geometry or physics settings',()=>{
   for(const key of ['shadowSize','vegetationRange','detailedTrees'])assert(QUALITY.low[key]<QUALITY.medium[key]&&QUALITY.medium[key]<QUALITY.high[key]);
-  assert.equal(QUALITY.low.ao,false);assert.equal(QUALITY.medium.ao,true);
   assert(QUALITY.high.dpr<=1.5);assert(QUALITY.high.shadowSize<=2048);
 });
 test('actual self-hosted HDR is decodable high dynamic range, not an LDR placeholder',async()=>{

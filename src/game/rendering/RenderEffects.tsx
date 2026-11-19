@@ -3,18 +3,16 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { HalfFloatType, Vector2, WebGLRenderTarget } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import type { Pass } from 'three/addons/postprocessing/Pass.js';
-import { QUALITY } from './quality';
 import { useVisual } from '../../stores/visual';
 import { telemetry } from './Lighting';
 
 export function RenderEffects() {
   const { gl,scene,camera,size,viewport }=useThree();
-  const quality=useVisual(s=>s.quality),ao=useVisual(s=>s.ao),bloom=useVisual(s=>s.bloom);
-  const pipeline=useRef<{composer:EffectComposer;ao?:SSAOPass}>();
+  const quality=useVisual(s=>s.quality),bloom=useVisual(s=>s.bloom);
+  const pipeline=useRef<{composer:EffectComposer}>();
   const capture=useRef(useVisual.getState().captureRequest),timing=useRef({elapsed:0,frames:0});
   useEffect(()=>{
     const wasAuto=gl.info.autoReset,shadowAuto=gl.shadowMap.autoUpdate;
@@ -31,33 +29,21 @@ export function RenderEffects() {
     return ()=>{gl.render=originalRender;gl.shadowMap.render=originalShadow;gl.info.autoReset=wasAuto;gl.shadowMap.autoUpdate=shadowAuto;};
   },[gl,scene]);
   useEffect(()=>{
-    if(quality==='low'||!ao&&!bloom)return;
-    const profile=QUALITY[quality],ratio=gl.getPixelRatio();
-    const target=new WebGLRenderTarget(1,1,{type:HalfFloatType,samples:quality==='high'?4:2});
+    if(quality!=='high'||!bloom)return;
+    const ratio=gl.getPixelRatio();
+    const target=new WebGLRenderTarget(1,1,{type:HalfFloatType,samples:4});
     const composer=new EffectComposer(gl,target),passes:Pass[]=[];
     composer.setPixelRatio(ratio);composer.setSize(size.width,size.height);
     const beauty=new RenderPass(scene,camera);composer.addPass(beauty);passes.push(beauty);
-    let occlusion:SSAOPass|undefined;
-    if(ao){
-      occlusion=new SSAOPass(scene,camera,Math.ceil(size.width*ratio*profile.aoScale),Math.ceil(size.height*ratio*profile.aoScale),profile.aoSamples);
-      occlusion.kernelRadius=quality==='high'?.7:.5;occlusion.minDistance=.001;occlusion.maxDistance=.04;
-      composer.addPass(occlusion);passes.push(occlusion);
-      // Composer.addPass resizes to full output: restore the intended reduced AO resolution.
-      occlusion.setSize(Math.ceil(size.width*ratio*profile.aoScale),Math.ceil(size.height*ratio*profile.aoScale));
-    }
-    if(bloom&&quality==='high'){const glow=new UnrealBloomPass(new Vector2(size.width,size.height),.1,.25,1.4);composer.addPass(glow);passes.push(glow);}
+    const glow=new UnrealBloomPass(new Vector2(size.width,size.height),.1,.25,1.4);composer.addPass(glow);passes.push(glow);
     const output=new OutputPass();composer.addPass(output);passes.push(output);
-    pipeline.current={composer,ao:occlusion};
+    pipeline.current={composer};
     return ()=>{pipeline.current=undefined;for(const pass of passes)pass.dispose();composer.dispose();};
-  },[gl,scene,camera,size.width,size.height,viewport.dpr,quality,ao,bloom]);
+  },[gl,scene,camera,size.width,size.height,viewport.dpr,quality,bloom]);
   useFrame((_,delta)=>{
     gl.info.reset();
     telemetry().shadowCalls=0;gl.shadowMap.needsUpdate=true;
     const active=pipeline.current;
-    if(active?.ao){
-      const uniforms=active.ao.ssaoMaterial.uniforms;
-      uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);
-    }
     if(active)active.composer.render(delta);else gl.render(scene,camera);
     const info=telemetry();info.calls=gl.info.render.calls;info.triangles=gl.info.render.triangles;
     info.geometries=gl.info.memory.geometries;info.textures=gl.info.memory.textures;

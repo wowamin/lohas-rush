@@ -19,8 +19,9 @@ import { constrainCamera } from '../src/game/camera/cameraCollision.ts';
 
 const idle = { throttle: 0, steer: 0, brake: false };
 
-test('expanded city adds exactly thirty percent area and keeps all outer roads reachable and clear',()=>{
-  assert.ok(Math.abs((CITY_LIMIT/448)**2-1.30)<1e-12);
+test('expanded city provides a 1440 m map and keeps the old and new outer roads reachable and clear',()=>{
+  assert.equal(CITY_LIMIT,720);
+  assert.ok((CITY_LIMIT/(448*Math.sqrt(1.30)))**2>1.9,'almost double the previous playable area');
   const homes=buildings.filter(b=>b.id.startsWith('expansion-home-'));
   assert.equal(homes.length,32);
   for(const b of homes){
@@ -30,7 +31,7 @@ test('expanded city adds exactly thirty percent area and keeps all outer roads r
   const nodes=roadNodes.filter(n=>n.id.startsWith('expansion-'));
   assert.ok(nodes.length>10);
   for(const node of nodes){assert.equal(collides(...node.point),false);assert.ok(findRoadRoute('0-0',node.id).length>1);}
-  assert.deepEqual(locations.map(l=>l.position),[[-260,0,-180],[-324,0,212],[-16,0,340],[324,0,244],[356,0,-180]]);
+  assert.deepEqual(locations.map(l=>l.position),[[-320,0,-560],[-560,0,-200],[-280,0,560],[320,0,560],[560,0,-280]]);
   const daihe = buildings.find(building => building.id === 'daihe');
   assert.ok(daihe);
   assert.deepEqual([daihe.halfX, daihe.halfZ, daihe.height], [7, 6, 13]);
@@ -61,7 +62,7 @@ test('expanded city adds exactly thirty percent area and keeps all outer roads r
     const t = Math.max(0, Math.min(1, ((xinyingX - a[0]) * dx + (xinyingZ - a[1]) * dz) / (dx * dx + dz * dz)));
     assert.ok(Math.hypot(xinyingX - a[0] - t * dx, xinyingZ - a[1] - t * dz) > Math.hypot(xinying.halfX, xinying.halfZ) + road.width / 2, `Xinying building clears ${road.kind} road`);
   }
-  assert.deepEqual(river.bridgeCenters,[-480,0,260,480]);
+  assert.deepEqual(river.bridgeCenters,[-640,-480,0,260,480,640]);
 });
 
 test('virtual camera follows target heading, selects priority and cuts directly on reset', () => {
@@ -209,7 +210,7 @@ test('infeasible density or spacing reports errors rather than dropping centers 
 
 test('all candidate lots in different center districts meet the physical separation guarantee', () => {
   const groups = centerDistrictIds.map(district => spawnPoints.filter(point => point.district === district));
-  for (const group of groups) assert.equal(group.length, 16, 'each large district has equal capacity');
+  for (const group of groups) assert.equal(group.length, 1, 'each center has one deliberately reserved campus site');
   for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
     for (const a of groups[i]) for (const b of groups[j]) {
       assert.ok(Math.hypot(a.position[0] - b.position[0], a.position[2] - b.position[2]) >= CITY_GENERATION_RULES.minCenterDistance);
@@ -461,9 +462,8 @@ test('river and banks block top-speed approaches; bridge works both directions a
 
 test('all service entrances connect to roads; reference status stays explicit and day work remains separate', () => {
   for (const location of locations) {
-    const hasReference = ['daihe', 'annan', 'xinying'].includes(location.id);
-    assert.equal(location.reference.status, hasReference ? 'provided' : 'missing');
-    assert.equal(location.reference.source, hasReference ? 'user-attachment' : 'awaiting-photo');
+    assert.equal(location.reference.status, 'provided');
+    assert.equal(location.reference.source, 'user-attachment');
     assert.equal(location.reference.photo, null);
     for (let angle = 0; angle < Math.PI * 2; angle += 0.15) {
       assert.equal(collides(location.arrival[0] + Math.cos(angle) * location.radius, location.arrival[1] + Math.sin(angle) * location.radius), false, location.id);

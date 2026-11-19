@@ -3,6 +3,7 @@ import { landscapeObstacles } from './landscape.ts';
 import { servicePoints } from './services.ts';
 import { generateCity, type SpawnPoint } from './cityGenerator.ts';
 import { centerDistrictIds } from './streetGrid.ts';
+import { campusSpawnPoints, campusReservations } from './centerCampuses.ts';
 
 export const CITY_SEED = 20261103;
 export const centerIds = ['daihe', 'annan', 'longshan', 'yihe', 'xinying'];
@@ -14,7 +15,7 @@ export const shopPrefabs = [
   { id: 'bakery', name: '暖心麵包店', color: '#ead69e', height: 6 },
   { id: 'repair', name: '街坊修車舖', color: '#b4cbd1', height: 4 },
 ];
-const fixedObstacles = [...landscapeObstacles, ...servicePoints];
+const fixedObstacles = [...landscapeObstacles, ...servicePoints, ...campusReservations];
 // Reserve roadside lots with clearance for the largest placeholder (12 x 12 m).
 const outerLots: SpawnPoint[] = Array.from({ length: RING_SEGMENTS / 2 }, (_, i) => {
   const index = i * 2, [x, z] = polar(82, index);
@@ -22,7 +23,7 @@ const outerLots: SpawnPoint[] = Array.from({ length: RING_SEGMENTS / 2 }, (_, i)
     rotation: Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2),
     arrival: polar(64, index), roadNode: `1-${index}` };
 });
-export const spawnPoints: SpawnPoint[] = [...outerLots, ...cityBlocks.map(block => block.lot)].filter(point => {
+const shopLots: SpawnPoint[] = [...outerLots, ...cityBlocks.map(block => ({...block.lot,district:undefined}))].filter(point => {
   const [x, , z] = point.position;
   if (fixedObstacles.some(obstacle => Math.abs(x - obstacle.x) < 6 + obstacle.halfX + 1 && Math.abs(z - obstacle.z) < 6 + obstacle.halfZ + 1)) return false;
   return roads.every(road => {
@@ -32,4 +33,13 @@ export const spawnPoints: SpawnPoint[] = [...outerLots, ...cityBlocks.map(block 
     return Math.hypot(x - ax - t * dx, z - az - t * dz) > Math.SQRT2 * 6 + road.width / 2;
   });
 });
+// Centers have deliberate, spacious sites. Seeded shops still fill every other
+// eligible lot; interleave sites to retain the existing eight-shop gap contract.
+export const spawnPoints: SpawnPoint[]=[];
+let nextCampus=0;
+shopLots.forEach((point,index)=>{
+  spawnPoints.push(point);
+  if((index+1)%20===0&&nextCampus<campusSpawnPoints.length)spawnPoints.push(campusSpawnPoints[nextCampus++]);
+});
+if(nextCampus!==campusSpawnPoints.length)throw new Error('Not enough shop lots to separate all five campus sites.');
 export const generatedCity = generateCity({ spawnPoints, normalShops: shopPrefabs.map(prefab => prefab.id), sunCareCenters: centerIds, seed: CITY_SEED, ...CITY_GENERATION_RULES });

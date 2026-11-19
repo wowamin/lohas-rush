@@ -1,5 +1,21 @@
 # 樂活長照城市與《樂活狂飆》開發紀錄
 
+## 2026-11-19｜七股龍山／七股義合地圖建築
+
+依後續要求實際加入兩棟建築外觀，使用本次龍山正立面與義合入口照片作參考。新增 `QiguCenterBuilding.tsx` 及可獨立驗證的 `buildings/qiguCenterModels.ts`，在 City 接入並排除原通用佔位量體。龍山有圓窗、雙層窗列、陽台、門廊、招牌與簡化冷氣；義合有磁磚拱形入口、柱列、格網門片、階梯及鏤空扶手。義合未拍到的上部、側背面與屋頂為簡化遊戲量體。照片不作貼圖，未下載外部素材，沒有抄入電話、地址或未確認服務資訊。
+
+所有模型頂點（含基座、階梯、扶手）皆收在原 12×12 碰撞範圍及 7 高度上界內；保留位置、旋轉、抵達點、碰撞、路網、任務與存檔。龍山 9 個 Mesh／2,308 三角面，義合 8 個 Mesh／1,038 三角面。新增展示選項，相機依建築朝向及螢幕比例取景；五站來源資料改為使用者附件，保留缺少完整立面／尺寸的說明。
+
+驗證：`npm.cmd test` 89／89 通過，`npm.cmd run build` 成功。渲染 Chrome 回歸通過桌機／手機模型、無 AO、三種畫質、Bloom、展示／PNG、駕駛／煞車／重置與偏好保存。另以最終模型做四個取景檢查，將每棟世界包圍盒八角投影至攝影機，確認桌機與 390×844 畫面皆完整容納建築；截圖已實際檢視，位於 `.test-artifacts/rendering/qigu-{longshan,yihe}-{desktop,mobile}.png`。
+
+`npm.cmd run test:street` 為 3／4 通過：既有街道材質粗糙度 .84 與測試 `roughness >= .9` 不一致。以 `git diff --quiet HEAD --` 確認該測試、PedestrianStreet、StreetGeometry、StreetMaterials、StreetNavigation 及共用 materials.ts 均未改變（退出碼 0），保留失敗結果。未重跑五站長程與完整接送瀏覽器回歸，未驗證實體手機或硬體 GPU 效能；Vite 大型 chunk 警告保留。既有 AO 修改保留，未修改 lohas_islands，未提交、推送或部署。
+
+## 2026-11-19｜移除環境遮蔽 AO
+
+依使用者要求移除畫面設定的 AO 選項、visual store 的 AO 狀態／操作、三種畫質的 AO 參數，以及 RenderEffects 的 SSAOPass 與逐幀投影矩陣更新。未啟用 Bloom 時直接繪製場景，High 開啟 Bloom 時保留既有後製流程。
+
+驗證：`npm.cmd test` 88 項通過、`npm.cmd run build` 成功；Chrome `npm.cmd run test:rendering:browser` 通過三種畫質切換及無 AO 選項、Bloom 開關、展示環繞／PNG、暫停／恢復、駕駛／煞車／重置與畫質保存。Vite 本機 5199 啟動正常。既有大型 chunk 警告保留；未驗證實體手機或硬體 GPU 效能，未提交、推送或部署。
+
 ## 2026-11-06｜道路設施分離與司機協助輪椅進出
 
 依使用者要求，取消每棟建築旁固定附加樹木／路燈的做法，改由路網生成獨立位置：路燈朝向車道，樹木與路燈至少相隔 5.5 個遊戲單位，避開其他車道、路口、建築、河岸與接送入口。人行道單側寬 3.5，路緣設施帶之外保留連續步行空間。提高樹冠、加入植栽穴；樹幹及燈柱同步納入車輛／輪椅碰撞。預設 430 盞燈、733 棵樹，仍由原三組 InstancedMesh 繪製。世界與碰撞定義在 `src/data/streetFurniture.ts`、`src/data/city.ts`，街景在 `src/game/StaticScenery.tsx`。

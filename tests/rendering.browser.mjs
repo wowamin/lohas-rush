@@ -21,18 +21,24 @@ try{
     const sun=state.scene.children.find(o=>o.isDirectionalLight);
     const surfaceColors=[];state.scene.traverse(o=>{if(o.name.startsWith('city-surface-'))surfaceColors.push({name:o.name,vertexColors:o.material.vertexColors,hasVertexAttribute:!!o.geometry.getAttribute('color'),hasInstanceColors:!!o.instanceColor});});
     const headquarters=state.scene.getObjectByName('headquarters-reference');
+    const qigu=['longshan','yihe'].map(id=>{
+      const root=state.scene.getObjectByName(`${id}-center-building`),model=root?.getObjectByName(`${id}-center-model`);
+      return{id,position:root?.position.toArray(),rotation:root?.rotation.y,meshes:model?.children.length??0,signWidth:model?.getObjectByName(`${id}-center-sign`)?.material.map.image.width??0};
+    });
     return{scene:state.scene.uuid,camera:state.camera.position.toArray(),fov:state.camera.fov,environment:!!state.scene.environment,
       colorSpace:state.gl.outputColorSpace,toneMapping:state.gl.toneMapping,shadowSize:sun.shadow.map?.width??sun.shadow.mapSize.x,
       paused:game.controlsPaused,mission:game.missionIndex,reset:game.resetKey,x:game.x,z:game.z,
       vegetation:state.scene.getObjectByName('street-vegetation')?.userData,surfaceColors,stats:window.__LOHAS_RENDERING__,
-      headquartersVertices:headquarters?.geometry.getAttribute('position').count??0};
+      headquartersVertices:headquarters?.geometry.getAttribute('position').count??0,qigu};
   });
   await expect.poll(async()=>(await inspect()).headquartersVertices??0,{timeout:30000}).toBeGreaterThan(0);
   const original=await inspect();assert.equal(original.colorSpace,'srgb');assert.equal(original.toneMapping,4);assert(original.environment);
+  for(const center of original.qigu){assert(center.meshes>0&&center.meshes<=10);assert.equal(center.signWidth,1024);}
   for(const surface of original.surfaceColors){assert(surface.hasInstanceColors);assert(!surface.vertexColors||surface.hasVertexAttribute,`${surface.name} cannot read a missing vertex color attribute`);}
   await page.getByRole('button',{name:'畫面設定',exact:true}).click();
   for(const [quality,size]of [['low',512],['medium',1536],['high',2048]]){
     await page.getByLabel('畫質',{exact:true}).selectOption(quality);
+    await expect(page.getByLabel('環境遮蔽 AO',{exact:true})).toHaveCount(0);
     await expect.poll(async()=>(await inspect()).shadowSize,{timeout:30000}).toBe(size);
     const state=await inspect();assert.equal(state.scene,original.scene);assert.equal(state.mission,original.mission);assert.equal(state.reset,original.reset);
     assert(state.vegetation.visibleTrees>0&&state.vegetation.visibleTrees<=state.vegetation.totalTrees);
@@ -52,6 +58,20 @@ try{
   await page.screenshot({path:'.test-artifacts/rendering/showcase-ui.png'});
   await page.getByLabel('展示建築',{exact:true}).selectOption('xinying');
   await expect.poll(async()=>Math.hypot(...(await inspect()).camera.map((v,i)=>v-frozen.camera[i])),{timeout:15000}).toBeGreaterThan(20);
+  const showQigu=async(id,device)=>{
+    await page.getByLabel('展示建築',{exact:true}).selectOption(id);
+    await expect.poll(async()=>{
+      const s=await inspect(),center=s.qigu.find(c=>c.id===id);
+      return Math.hypot(s.camera[0]-center.position[0],s.camera[2]-center.position[2]);
+    },{timeout:30000}).toBeLessThan(90);
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const s=await inspect(),center=s.qigu.find(c=>c.id===id);
+    const dx=s.camera[0]-center.position[0],dz=s.camera[2]-center.position[2];
+    assert(dx*Math.sin(center.rotation)+dz*Math.cos(center.rotation)>0,'showcase starts on the photo-based front elevation');
+    assert.equal(s.mission,original.mission);assert.equal(s.reset,original.reset);
+    await page.locator('canvas').screenshot({path:`.test-artifacts/rendering/qigu-${id}-${device}.png`});
+  };
+  await showQigu('longshan','desktop');await showQigu('yihe','desktop');
   await page.getByRole('button',{name:'返回駕駛',exact:true}).click();
   assert.equal((await inspect()).paused,false);
   await page.getByLabel('畫質',{exact:true}).selectOption('low');
@@ -63,9 +83,13 @@ try{
   await page.getByLabel('畫質',{exact:true}).selectOption('high');
   const normal=new URL(base);normal.searchParams.delete('quality');await page.goto(normal.href);await dismissDrivingGuide(page);
   await page.getByRole('button',{name:'畫面設定',exact:true}).click();await expect(page.getByLabel('畫質',{exact:true})).toHaveValue('high');
+  await page.getByLabel('畫質',{exact:true}).selectOption('low');
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole('button',{name:'建築展示',exact:true}).click();
+  await showQigu('longshan','mobile');await showQigu('yihe','mobile');
   assert(resources.some(r=>r.url.includes('.hdr')&&r.status===200));assert(resources.some(r=>r.url.includes('lohas_service_van.glb')&&r.status===200));
   assert(resources.some(r=>r.url.includes('lohas_building_reference.glb')&&r.status===200));
   assert.deepEqual(errors,[]);assert.deepEqual(shaderErrors,[]);
-  await writeFile('.test-artifacts/rendering/browser-validation.json',JSON.stringify({passed:true,resources,errors,shaderErrors,qualitySwitches:['low','medium','high'],showcaseOrbit:true,capture:true,drivingAfterShowcase:true,preferencePersistence:true},null,2));
-  console.log('PASS: HDR/GLB, PBR shaders, live quality, AO/Bloom, showcase/orbit/PNG, pause/restore, driving/braking/reset and persistence.');
+  await writeFile('.test-artifacts/rendering/browser-validation.json',JSON.stringify({passed:true,resources,errors,shaderErrors,qualitySwitches:['low','medium','high'],showcaseOrbit:true,capture:true,drivingAfterShowcase:true,preferencePersistence:true,qiguCenters:original.qigu,qiguDesktopAndMobile:true},null,2));
+  console.log('PASS: HDR/GLB, PBR shaders, live quality without AO, Bloom, showcase/orbit/PNG, pause/restore, driving/braking/reset and persistence.');
 }finally{await browser.close();}

@@ -1,11 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { BoxGeometry, Mesh, MeshStandardMaterial, Group, Box3, Vector3 } from 'three';
+import { BoxGeometry, Mesh, MeshStandardMaterial, Group, Box3, Vector3, Texture } from 'three';
 import { GameAssets } from '../src/game/assets/GameAssets.ts';
 import { TrackManager } from '../src/game/assets/TrackManager.ts';
 import { modelUrl, assetKeys } from '../src/game/assets/modelManifest.ts';
 import { buildings } from '../src/data/city.ts';
+import { createQiguCenterModel } from '../src/game/buildings/qiguCenterModels.ts';
+import { disposeModels } from '../src/game/assets/GameAssets.ts';
+
+test('Qigu photo-based models fit the unchanged collision and camera envelope in every building orientation', () => {
+  for (const id of ['longshan', 'yihe']) {
+    const building = buildings.find(item => item.id === id);
+    const model = createQiguCenterModel(id, new Texture(), id === 'longshan' ? new Texture() : undefined);
+    try {
+      const localBounds = new Box3().setFromObject(model);
+      assert(localBounds.min.y >= -1e-6 && localBounds.max.y <= building.height + 1e-6);
+      for (const angle of [0, Math.PI / 2, Math.PI, -Math.PI / 2, building.rotation]) {
+        model.position.set(building.x, 0, building.z); model.rotation.y = angle;
+        model.updateMatrixWorld(true);
+        const bounds = new Box3().setFromObject(model);
+        assert(bounds.min.x >= building.x - building.halfX - 1e-5 && bounds.max.x <= building.x + building.halfX + 1e-5, id);
+        assert(bounds.min.z >= building.z - building.halfZ - 1e-5 && bounds.max.z <= building.z + building.halfZ + 1e-5, id);
+      }
+      let triangles = 0;
+      model.traverse(mesh => {
+        if (!mesh.isMesh) return;
+        const positions = mesh.geometry.getAttribute('position');
+        assert(Array.from(positions.array).every(Number.isFinite));
+        assert(Array.from(mesh.geometry.getAttribute('normal').array).every(Number.isFinite));
+        triangles += (mesh.geometry.index?.count ?? positions.count) / 3;
+      });
+      assert(triangles < 15000, `${id}: bounded low-poly geometry`);
+      assert(model.children.length <= 10, `${id}: material batches, not a draw call per tile/bar`);
+      assert(model.getObjectByName(`${id}-center-sign`));
+      let signDisposed = 0;
+      model.getObjectByName(`${id}-center-sign`).material.map.addEventListener('dispose', () => signDisposed++);
+      disposeModels([model]);
+      assert.equal(signDisposed, 1);
+    } catch (error) { disposeModels([model]); throw error; }
+  }
+});
 
 const cube = () => new Mesh(new BoxGeometry(2, 2, 2), new MeshStandardMaterial());
 test('headquarters reference is the supplied Z-up GLB and its collision footprint matches its proportions', async () => {

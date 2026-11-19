@@ -10,8 +10,10 @@ import type { CameraBlocker } from './cameraCollision';
 import { WheelchairCameraAvoidance } from './wheelchairCamera';
 import { bindMouseOrbit } from './MouseOrbit';
 import { useVisual } from '../../stores/visual';
+import { campusFixtures } from '../../data/centerCampuses';
 
 const blockers: CameraBlocker[] = [
+  ...campusFixtures.map(f=>({min:{x:f.x-f.halfX,y:0,z:f.z-f.halfZ},max:{x:f.x+f.halfX,y:f.height,z:f.z+f.halfZ}})),
   ...buildings.map(b => ({ min: { x: b.x - b.halfX, y: 0, z: b.z - b.halfZ }, max: { x: b.x + b.halfX, y: b.height + 0.65, z: b.z + b.halfZ } })),
   ...mountains.map(m => ({ min: { x: m.x - m.radius, y: 0, z: m.z - m.radius }, max: { x: m.x + m.radius, y: m.height, z: m.z + m.radius } })),
   { min: { x: fountain.x - fountain.radius, y: 0, z: fountain.z - fountain.radius }, max: { x: fountain.x + fountain.radius, y: 0.8, z: fountain.z + fountain.radius } },

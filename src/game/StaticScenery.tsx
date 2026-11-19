@@ -6,6 +6,7 @@ import { roads, nodeById, CITY_LIMIT, INNER_RADIUS, OUTER_RADIUS, cityBlocks, st
 import { river, landscapeObstacles } from '../data/landscape';
 import { createSurface, type Surface } from './rendering/materials';
 import { Vegetation } from './rendering/Vegetation';
+import { spatialBatches, STATIC_CELL_SIZE } from './rendering/spatialBatches';
 
 type Instance = { position: [number, number, number]; size: [number, number, number]; color: string; rotation?: number; owner?: string };
 const boxes: Instance[] = [];
@@ -47,7 +48,7 @@ for (const block of cityBlocks) {
   box([block.center[0], -0.01, block.center[1]], [block.lotWidth, 0.06, block.lotDepth], block.district === 'west' ? '#c8d4b7' : '#d5d9bd');
 }
 buildings.forEach(b => {
-  if (b.id === 'daihe' || b.id === 'annan' || b.id === 'xinying') return;
+  if (b.location) return;
   const rotation = b.rotation ?? 0, sin = Math.sin(rotation), cos = Math.cos(rotation);
   let owner: string | undefined;
   const add = (position: Instance['position'], size: Instance['size'], color: string) =>
@@ -95,12 +96,11 @@ function classify(color: string): Surface {
 }
 const surfaceBatches = new Map<Surface,Instance[]>();
 for(const item of boxes){const surface=classify(item.color),batch=surfaceBatches.get(surface)??[];batch.push(item);surfaceBatches.set(surface,batch);}
-function Instances({ items, surface, hiddenShops = emptyShops }: { items: Instance[]; surface: Surface; hiddenShops?: ReadonlySet<string> }) {
+const regions=Array.from(surfaceBatches,([surface,items])=>Array.from(spatialBatches(items),([cell,instances])=>({surface,cell,items:instances}))).flat();
+function Instances({ items, surface, cell, geometry, material, hiddenShops = emptyShops }: { items: Instance[]; surface: Surface; cell:string; geometry:THREE.BoxGeometry; material:THREE.MeshStandardMaterial; hiddenShops?: ReadonlySet<string> }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   // InstancedMesh supplies instanceColor automatically. BoxGeometry has no
   // per-vertex color attribute, so enabling vertexColors would multiply by zero.
-  const material=useMemo(()=>createSurface(surface),[surface]);
-  useEffect(()=>()=>{material.map?.dispose();material.normalMap?.dispose();material.roughnessMap?.dispose();material.dispose();},[material]);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     const object = new THREE.Object3D();
@@ -117,18 +117,19 @@ function Instances({ items, surface, hiddenShops = emptyShops }: { items: Instan
     mesh.current.instanceMatrix.needsUpdate = true;
     if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
     mesh.current.computeBoundingSphere();
+    mesh.current.computeBoundingBox();
   }, [items, hiddenShops, surface]);
-  return <instancedMesh name={`city-surface-${surface}`} ref={mesh} args={[undefined, undefined, items.length]} castShadow={!['glass','grass','asphalt','marking','water','tile'].includes(surface)} receiveShadow>
-    <boxGeometry />
-    <primitive object={material} attach="material" />
-  </instancedMesh>;
+  return <instancedMesh name={`city-surface-${surface}-${cell}`} userData={{staticCell:cell,staticSurface:surface}} ref={mesh} args={[geometry, material, items.length]} castShadow={!['glass','grass','asphalt','marking','water','tile'].includes(surface)} receiveShadow />;
 }
 
 // Batch by PBR surface; object count does not multiply draw calls.
 export const StaticScenery = memo(function StaticScenery({ hiddenShops }: { hiddenShops: ReadonlySet<string> }) {
+  const geometry=useMemo(()=>new THREE.BoxGeometry(),[]);
+  const materials=useMemo(()=>new Map(Array.from(surfaceBatches.keys(),surface=>[surface,createSurface(surface)])),[]);
+  useEffect(()=>()=>{geometry.dispose();for(const material of materials.values()){material.map?.dispose();material.normalMap?.dispose();material.roughnessMap?.dispose();material.dispose();}},[geometry,materials]);
   const roadMaterial=useMemo(()=>createSurface('asphalt'),[]),pavingMaterial=useMemo(()=>createSurface('tile',{color:'#e3dfd3'}),[]);
   useEffect(()=>()=>{for(const material of [roadMaterial,pavingMaterial]){material.map?.dispose();material.normalMap?.dispose();material.roughnessMap?.dispose();material.dispose();}},[roadMaterial,pavingMaterial]);
-  return <>{Array.from(surfaceBatches,([surface,items])=><Instances key={surface} items={items} surface={surface} hiddenShops={hiddenShops} />)}<Vegetation />
+  return <><group name="static-city-batches" userData={{cellSize:STATIC_CELL_SIZE,sourceInstances:boxes.length}}>{regions.map(region=><Instances key={`${region.surface}-${region.cell}`} {...region} geometry={geometry} material={materials.get(region.surface)!} hiddenShops={hiddenShops} />)}</group><Vegetation />
     {[INNER_RADIUS, OUTER_RADIUS].map(radius => <group key={radius}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} receiveShadow><ringGeometry args={[radius - 8-SIDEWALK_WIDTH, radius + 8+SIDEWALK_WIDTH, 128]} /><primitive object={pavingMaterial} attach="material" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.11, 0]} receiveShadow><ringGeometry args={[radius - 8, radius + 8, 128]} /><primitive object={roadMaterial} attach="material" /></mesh>

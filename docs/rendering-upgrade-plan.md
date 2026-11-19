@@ -1,5 +1,7 @@
 # 樂活狂飆渲染升級計畫
 
+2026-11-19 更新：依使用者要求移除 AO 渲染、畫質分級參數與設定選項。下列為原始升級計畫，AO 項目已取消。
+
 2026-11-10，工作目錄 D:\lohas-rush。只在現有專案開發，不部署。執行前 git status 只有使用者的 world.glb、建築參考圖及先前 art/buildings 產物未追蹤；不刪除或覆寫這些來源。
 
 已確認 React 18.3.1 / Three.js 0.175.0 / R3F 8.18.0 / Drei 9.122.0 / Zustand 5.0.16。原始 84 項測試通過。Canvas 位於 App，City 管理城市，特色建築為分批合併幾何，StaticScenery 為 InstancedMesh，GameAssets/TrackManager 保留缺少選用 GLB 時的替代及串流。

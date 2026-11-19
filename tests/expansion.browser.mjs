@@ -37,8 +37,10 @@ try{
   await page.evaluate(async()=>{
     const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');
     const T=await import('/node_modules/.vite/deps/three.js');
+    const {CITY_LIMIT}=await import('/src/data/roadNetwork.ts');
     const state=_roots.get(document.querySelector('canvas')).store.getState(),scene=state.scene.clone(true);scene.fog=null;
-    const camera=new T.OrthographicCamera(-565,565,565,-565,1,2000);camera.position.set(0,1000,0);camera.lookAt(0,0,0);
+    const extent=CITY_LIMIT+40;
+    const camera=new T.OrthographicCamera(-extent,extent,extent,-extent,1,4000);camera.position.set(0,1800,0);camera.up.set(0,0,-1);camera.lookAt(0,0,0);
     const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(1000,1000);
     renderer.domElement.id='expansion-review';renderer.domElement.style.cssText='position:fixed;inset:0;z-index:99999;width:1000px;height:1000px';
     document.body.appendChild(renderer.domElement);renderer.render(scene,camera);

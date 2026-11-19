@@ -14,8 +14,10 @@ export const locations: Location[] = names.map((shortName, index) => {
     id: prefab, shortName, name: `${shortName}日照中心`,
     description: `沿金色路線前往${shortName}日照中心，駛入金色圓環即可記錄抵達。若要體驗奶奶下車，請先完全停車。`,
     position: [...point.position], arrival: [...point.arrival], roadNode: point.roadNode, radius: 4, color: colors[index], lotId: point.id, rotation: point.rotation, district: point.district!,
-    reference: index === 0 || index === 1 || index === 4
-      ? { status: 'provided', source: 'user-attachment', photo: null, required: ['側面／入口照片', '實際尺寸與樓層高度'], unverified: ['實際尺寸與比例', '真實地址及服務資訊；遊戲座標不代表真實位置'] }
-      : { status: 'missing', source: 'awaiting-photo', photo: null, required: ['可使用的正面照片', '側面／入口照片', '照片來源與使用授權'], unverified: ['實際外觀與樓層', '入口方向', '真實地址及服務資訊；遊戲座標不代表真實位置'] },
+    reference: {
+      status: 'provided', source: 'user-attachment', photo: null,
+      required: prefab === 'yihe' ? ['完整正立面與屋頂照片', '側背面照片', '實際尺寸與樓層高度'] : ['側面／入口照片', '實際尺寸與樓層高度'],
+      unverified: ['實際尺寸與比例', ...(prefab === 'yihe' ? ['入口以外的量體為簡化遊戲示意'] : []), '真實地址及服務資訊；遊戲座標不代表真實位置'],
+    },
   };
 });
