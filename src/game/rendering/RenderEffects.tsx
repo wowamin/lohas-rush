@@ -42,7 +42,7 @@ export function RenderEffects() {
   },[gl,scene,camera,size.width,size.height,viewport.dpr,quality,bloom]);
   useFrame((_,delta)=>{
     gl.info.reset();
-    telemetry().shadowCalls=0;gl.shadowMap.needsUpdate=true;
+    telemetry().shadowCalls=0;gl.shadowMap.needsUpdate=gl.shadowMap.enabled;
     const active=pipeline.current;
     if(active)active.composer.render(delta);else gl.render(scene,camera);
     const info=telemetry();info.calls=gl.info.render.calls;info.triangles=gl.info.render.triangles;

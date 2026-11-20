@@ -19,7 +19,7 @@ try{
     const {useGame}=await import('/src/stores/game.ts');
     const state=_roots.get(document.querySelector('canvas')).store.getState(),game=useGame.getState();
     const sun=state.scene.children.find(o=>o.isDirectionalLight);
-    const surfaceColors=[];state.scene.traverse(o=>{if(o.name.startsWith('city-surface-'))surfaceColors.push({name:o.name,vertexColors:o.material.vertexColors,hasVertexAttribute:!!o.geometry.getAttribute('color'),hasInstanceColors:!!o.instanceColor});});
+    const surfaceColors=[];state.scene.traverse(o=>{if(o.name.startsWith('city-surface-'))surfaceColors.push({name:o.name,count:o.count,vertexColors:o.material.vertexColors,hasVertexAttribute:!!o.geometry.getAttribute('color'),hasInstanceColors:!!o.instanceColor});});
     const headquarters=state.scene.getObjectByName('headquarters-reference');
     const qigu=['longshan','yihe'].map(id=>{
       const root=state.scene.getObjectByName(`${id}-center-building`),model=root?.getObjectByName(`${id}-center-model`);
@@ -27,6 +27,7 @@ try{
     });
     return{scene:state.scene.uuid,camera:state.camera.position.toArray(),fov:state.camera.fov,environment:!!state.scene.environment,
       colorSpace:state.gl.outputColorSpace,toneMapping:state.gl.toneMapping,shadowSize:sun.shadow.map?.width??sun.shadow.mapSize.x,
+      shadows:state.gl.shadowMap.enabled,far:state.camera.far,dpr:state.gl.getPixelRatio(),staticInstances:state.scene.getObjectByName('static-city-batches')?.userData.renderedInstances,
       paused:game.controlsPaused,mission:game.missionIndex,reset:game.resetKey,x:game.x,z:game.z,
       vegetation:state.scene.getObjectByName('street-vegetation')?.userData,surfaceColors,stats:window.__LOHAS_RENDERING__,
       headquartersVertices:headquarters?.geometry.getAttribute('position').count??0,qigu};
@@ -34,13 +35,16 @@ try{
   await expect.poll(async()=>(await inspect()).headquartersVertices??0,{timeout:30000}).toBeGreaterThan(0);
   const original=await inspect();assert.equal(original.colorSpace,'srgb');assert.equal(original.toneMapping,4);assert(original.environment);
   for(const center of original.qigu){assert(center.meshes>0&&center.meshes<=10);assert.equal(center.signWidth,1024);}
-  for(const surface of original.surfaceColors){assert(surface.hasInstanceColors);assert(!surface.vertexColors||surface.hasVertexAttribute,`${surface.name} cannot read a missing vertex color attribute`);}
+  for(const surface of original.surfaceColors){if(!surface.count)continue;assert(surface.hasInstanceColors);assert(!surface.vertexColors||surface.hasVertexAttribute,`${surface.name} cannot read a missing vertex color attribute`);}
   await page.getByRole('button',{name:'畫面設定',exact:true}).click();
   for(const [quality,size]of [['low',512],['medium',1536],['high',2048]]){
     await page.getByLabel('畫質',{exact:true}).selectOption(quality);
     await expect(page.getByLabel('環境遮蔽 AO',{exact:true})).toHaveCount(0);
     await expect.poll(async()=>(await inspect()).shadowSize,{timeout:30000}).toBe(size);
     const state=await inspect();assert.equal(state.scene,original.scene);assert.equal(state.mission,original.mission);assert.equal(state.reset,original.reset);
+    assert.equal(state.shadows,quality!=='low');assert(state.dpr<=1.5);
+    assert.equal(state.far,quality==='low'?230:quality==='medium'?440:640);
+    if(quality==='low')assert.equal(state.stats.shadowCalls,0);
     assert(state.vegetation.visibleTrees>0&&state.vegetation.visibleTrees<=state.vegetation.totalTrees);
   }
   await page.getByLabel('柔和高光 Bloom',{exact:true}).check();

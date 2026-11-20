@@ -20,11 +20,12 @@ import { VehicleContactShadow } from './rendering/VehicleContactShadow';
 
 export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const state = useRef(createVehicle());
-  const previous = useRef(createVehicle());
-  const rendered = useRef(createVehicle());
-  const chair = useRef(wheelchairDock(createVehicle())), previousChair = useRef({...chair.current}), renderedChair = useRef({...chair.current});
-  const cameraTarget = useRef(createVehicle());
+  const saved = useGame.getState();
+  const state = useRef({ ...createVehicle(), x: saved.parkedBusX, z: saved.parkedBusZ, angle: saved.parkedBusAngle });
+  const previous = useRef({ ...state.current });
+  const rendered = useRef({ ...state.current });
+  const chair = useRef(wheelchairDock(state.current)), previousChair = useRef({...chair.current}), renderedChair = useRef({...chair.current});
+  const cameraTarget = useRef({ ...state.current });
   const lights = useRef<VehicleLightsState>({ turn: 'off', braking: false });
   const accumulator = useRef(0);
   const uiTimer = useRef(0);
@@ -94,7 +95,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
         useGame.getState().setTransferStatus(transfer.current.phase);
         if (transfer.current.phase === 'outside') {
           Object.assign(chair.current,wheelchairDock(s)); Object.assign(previousChair.current,chair.current);
-          useGame.getState().setBoardingTelemetry(0,s.x,s.z);
+          useGame.getState().setBoardingTelemetry(0,s.x,s.z,s.angle);
         }
         if (!transfer.current.locked || transfer.current.phase === 'outside') { pressed.clear(); touchController.clear(); controlsChanged=true; }
       }
@@ -114,7 +115,7 @@ export function Car({ lowDetail = false }: { lowDetail?: boolean }) {
       const game = useGame.getState(); const destination = locations[game.missionIndex];
       game.setTelemetry(Math.round(Math.abs(active.speed) * 3.6), Math.round(Math.hypot(active.x - destination.arrival[0], active.z - destination.arrival[1])), active.x, active.z, active.angle);
       const dock=wheelchairDock(s);
-      game.setBoardingTelemetry(Math.hypot(chair.current.x-dock.x,chair.current.z-dock.z),s.x,s.z);
+      game.setBoardingTelemetry(Math.hypot(chair.current.x-dock.x,chair.current.z-dock.z),s.x,s.z,s.angle);
       explorationStore.getState().observe();
       uiTimer.current = 0;
     }

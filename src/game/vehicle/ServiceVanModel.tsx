@@ -1,7 +1,7 @@
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group } from 'three';
-import { createServiceVanFallback, loadServiceVan, serviceVanFile } from './serviceVan';
+import { createServiceVanFallback, loadServiceVan } from './serviceVan';
 import { disposeModels } from '../assets/GameAssets';
 import type { PassengerTransfer } from './passengerTransfer';
 import { driverPose } from './driverAssistance';
@@ -14,7 +14,7 @@ export function ServiceVanModel({ transfer }: { transfer: MutableRefObject<Passe
     group.userData.modelState = 'fallback';
     const controller = new AbortController();
     let loaded: Group | import('three').Object3D | undefined;
-    void loadServiceVan(`${import.meta.env.BASE_URL}${serviceVanFile}`, { signal: controller.signal }).then(model => {
+    void loadServiceVan(`${import.meta.env.BASE_URL}assets/optimized/lohas_service_van.glb`, { signal: controller.signal, base: import.meta.env.BASE_URL }).then(model => {
       if (controller.signal.aborted) { disposeModels([model]); return; }
       loaded = model; group.remove(fallback); group.add(model); group.userData.modelState = 'ready';
     }).catch(() => { /* The network-independent van stays playable on failure. */ });

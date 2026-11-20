@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createGltfLoader } from './gltfLoader.ts';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { assetKeys, modelSizes, modelUrl, type AssetKey } from './modelManifest.ts';
 import { createFallbackModel } from './fallbackModels.ts';
@@ -40,7 +40,7 @@ export class GameAssets {
   private base: string;
   private timeoutMs: number;
   constructor(options: Options = {}) {
-    const loader = new GLTFLoader();
+    const loader = createGltfLoader(options.base ?? './');
     this.load = options.load ?? (url => loader.loadAsync(url).then(gltf => gltf.scene));
     this.base = options.base ?? './'; this.timeoutMs = options.timeoutMs ?? 8000;
     for (const key of assetKeys) {

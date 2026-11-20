@@ -2,12 +2,20 @@ import {dismissDrivingGuide} from './browser-support.mjs';
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
-const browser=await chromium.launch({channel:'chrome',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const hardware=process.env.TEST_WEBGL_BACKEND==='hardware';
+const browser=await chromium.launch({channel:'chrome',headless:true,args:hardware?[]:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 await mkdir('.test-artifacts',{recursive:true});
 try{
   const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(process.env.TEST_BASE_URL||'http://127.0.0.1:5175/'); await dismissDrivingGuide(page);await page.bringToFront();
+  const renderer=await page.evaluate(async()=>{
+    const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');
+    const gl=_roots.get(document.querySelector('canvas')).store.getState().gl.getContext(),extension=gl.getExtension('WEBGL_debug_renderer_info');
+    return extension?gl.getParameter(extension.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);
+  });
+  if(hardware)assert(!/SwiftShader|llvmpipe|software/i.test(renderer),'hardware validation cannot silently use a software renderer');
+  console.log(`ORBIT: renderer ${renderer}`);
   await page.locator('.transfer-button').waitFor();
   const read=()=>page.evaluate(async()=>{
     const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');

@@ -11,7 +11,7 @@ import {explorationStatus} from '../exploration/types';
 import { centerCampuses, campusPoint } from '../data/centerCampuses';
 
 export function RouteMap() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const journalEntries=useStore(explorationStore,state=>state.entries);
   const outside=useGame(s=>s.transferPhase==='outside'),busX=useGame(s=>s.parkedBusX),busZ=useGame(s=>s.parkedBusZ);
   const x = useGame(s => s.x), z = useGame(s => s.z);
@@ -25,8 +25,8 @@ export function RouteMap() {
   const markerScale = extent / 162;
   return <section className={`route-map${collapsed ? ' is-collapsed' : ''}`} aria-label="虛構城市路線圖">
     {!collapsed && <span>五站園區 · 外環探索</span>}
-    <button type="button" className="route-map-toggle" onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? '展開完整 GPS 地圖' : '縮小 GPS 地圖'} title={collapsed ? '展開地圖' : '縮小地圖'}>{collapsed ? '展開' : '縮小'}</button>
-    <svg viewBox={`${collapsed ? x - localExtent : -extent} ${collapsed ? z - localExtent : -extent} ${viewExtent * 2} ${viewExtent * 2}`} role="img" aria-label={collapsed ? '目前位置周邊放大導航地圖' : '城市導航地圖；金線為導航路線，紅色圓點為目前位置'}>
+    <button type="button" className="route-map-toggle" onClick={() => setCollapsed(value => !value)} aria-expanded={!collapsed} aria-controls="route-map-content" aria-label={collapsed ? '展開完整 GPS 地圖' : '縮小 GPS 地圖'} title={collapsed ? '點擊小地圖放大' : '縮小地圖'}><span>{collapsed ? '展開' : '縮小'}</span></button>
+    <svg id="route-map-content" viewBox={`${collapsed ? x - localExtent : -extent} ${collapsed ? z - localExtent : -extent} ${viewExtent * 2} ${viewExtent * 2}`} role="img" aria-label={collapsed ? '目前位置周邊放大導航地圖' : '城市導航地圖；金線為導航路線，紅色圓點為目前位置'}>
     {!collapsed && streetDistricts.filter(d => centerDistrictIds.includes(d.id)).map(d => <rect key={d.id} x={d.xs[0]} y={d.zs[0]} width={d.xs[d.xs.length - 1] - d.xs[0]} height={d.zs[d.zs.length - 1] - d.zs[0]} fill="#e3e9d7" stroke="#acbfaa" strokeWidth="2pt" vectorEffect="non-scaling-stroke" />)}
     {!collapsed && <rect x={river.x - river.halfWidth} y={-CITY_LIMIT} width={river.halfWidth * 2} height={CITY_LIMIT * 2} fill="#b3d4dd" />}
     {!collapsed && cityBlocks.map(block => <rect key={block.id} x={block.center[0] - block.lotWidth / 2} y={block.center[1] - block.lotDepth / 2} width={block.lotWidth} height={block.lotDepth} fill="#d9dfc7" />)}

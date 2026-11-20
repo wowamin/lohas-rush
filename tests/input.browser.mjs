@@ -8,6 +8,7 @@ try {
   await page.locator('.target-label').filter({hasText:'大和'}).waitFor();
   const skip=page.getByRole('button',{name:'略過引導',exact:true});
   if(await skip.isVisible())await skip.click();
+  await page.locator('main[data-loading-state="ready"]').waitFor({timeout:30000});
   const speed=()=>page.locator('.speed-panel strong').innerText().then(Number);
   // Both key events occur in one JS task, before React effects or the next
   // physics frame. Reset must clear old input without discarding the new W.

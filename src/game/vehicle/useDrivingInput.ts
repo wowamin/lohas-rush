@@ -31,11 +31,14 @@ export function useDrivingInput() {
     };
     const up = (event: KeyboardEvent) => { keys.current.delete(event.code); };
     const visibility = () => { if (document.hidden) clear(); };
+    const orientation = window.matchMedia('(orientation: portrait)');
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     window.addEventListener('blur', clear); document.addEventListener('visibilitychange', visibility);
+    orientation.addEventListener('change', clear);
     return () => {
       unsubscribe(); clear(); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up);
       window.removeEventListener('blur', clear); document.removeEventListener('visibilitychange', visibility);
+      orientation.removeEventListener('change', clear);
     };
   }, []);
   return keys;

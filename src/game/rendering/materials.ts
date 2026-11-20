@@ -48,10 +48,30 @@ function texture(data: Uint8Array, color=false) {
   return map;
 }
 
+// Node tools retain procedural pixels for reproducible exports and validation.
+// Browsers download lossless WebP maps instead of generating every pixel at startup.
+function surfaceTexture(surface: Surface, slot: keyof Maps, color = false): THREE.Texture {
+  if (typeof document === 'undefined') return texture(generatedPixels(surface)[slot], color);
+  const base = import.meta.env?.BASE_URL ?? './';
+  const map = new THREE.TextureLoader().load(`${base}assets/textures/${surface}-${slot}.webp`, undefined, undefined, () => {
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = textureSize;
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.putImageData(new ImageData(new Uint8ClampedArray(generatedPixels(surface)[slot]), textureSize, textureSize), 0, 0);
+      map.image = canvas; map.needsUpdate = true;
+    }
+  });
+  map.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  map.flipY = false; // Match the original DataTexture's world-space UV direction.
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  map.magFilter = THREE.LinearFilter; map.minFilter = THREE.LinearMipmapLinearFilter;
+  map.generateMipmaps = true; map.anisotropy = 4;
+  return map;
+}
+
 /** World-scale mapping also covers InstancedMesh and geometry without artist-authored UVs. */
 export function worldScaleMaps(material: THREE.MeshStandardMaterial, surface: Surface, period: number) {
-  const data=generatedPixels(surface);
-  material.map=texture(data.color,true);material.normalMap=texture(data.normal);material.roughnessMap=texture(data.roughness);
+  material.map=surfaceTexture(surface,'color',true);material.normalMap=surfaceTexture(surface,'normal');material.roughnessMap=surfaceTexture(surface,'roughness');
   material.normalScale.setScalar(surface==='plaster'?.22:surface==='tile'?.45:.35);
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
@@ -78,14 +98,14 @@ export function worldScaleMaps(material: THREE.MeshStandardMaterial, surface: Su
 }
 
 /** Each returned material owns its textures and is compatible with disposeModels(). */
-export function createSurface(surface: Surface, options: { color?: THREE.ColorRepresentation; vertexColors?: boolean } = {}) {
+export function createSurface(surface: Surface, options: { color?: THREE.ColorRepresentation; vertexColors?: boolean; simple?: boolean } = {}) {
   const base = { color: options.color ?? (surface==='asphalt'?'#50565c':surface==='grass'?'#819565':surface==='concrete'?'#74787b':'#ffffff'), vertexColors: options.vertexColors ?? false };
   if(surface==='glass') return new THREE.MeshPhysicalMaterial({...base,roughness:.2,metalness:0,ior:1.46,clearcoat:.65,clearcoatRoughness:.12,
     // Reflective opaque architectural glazing avoids sorting and transmission passes while driving.
     transmission:0,envMapIntensity:1.1});
   const material=new THREE.MeshStandardMaterial({...base,roughness:surface==='metal'?.4:surface==='water'?.2:.84,
     metalness:surface==='metal'?.65:0});
-  if(['plaster','concrete','asphalt','tile','grass'].includes(surface))worldScaleMaps(material,surface,surface==='tile'?1.2:surface==='plaster'?.65:surface==='asphalt'?3.7:2.8);
+  if(!options.simple&&['plaster','concrete','asphalt','tile','grass'].includes(surface))worldScaleMaps(material,surface,surface==='tile'?1.2:surface==='plaster'?.65:surface==='asphalt'?3.7:2.8);
   return material;
 }
 

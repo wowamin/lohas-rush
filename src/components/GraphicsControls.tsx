@@ -3,19 +3,24 @@ import { useVisual } from '../stores/visual';
 import { useGame } from '../stores/game';
 import { isQuality } from '../game/rendering/quality';
 import type { RenderTelemetry } from '../game/rendering/Lighting';
+import { usePwa } from '../pwa/register';
 
-export function GraphicsControls() {
+export function GraphicsControls({ onOffline }: { onOffline: () => void }) {
   const visual=useVisual(),moving=useGame(s=>s.speed!==0||s.transferPhase!=='stowed');
+  const online=usePwa(s=>s.online),saveNotice=useGame(s=>s.saveNotice);
   const [stats,setStats]=useState<RenderTelemetry>();
   useEffect(()=>{if(!visual.panelOpen)return;const timer=setInterval(()=>setStats(window.__LOHAS_RENDERING__?{...window.__LOHAS_RENDERING__}:undefined),750);return()=>clearInterval(timer);},[visual.panelOpen]);
   const showcase=visual.viewMode==='showcase';
   return <section className={`graphics-controls${visual.panelOpen?' is-open':''}`} aria-label="畫面設定">
     <div className="graphics-toolbar">
+      <button type="button" onClick={onOffline}>{online?'安裝／離線':'離線中'}</button>
       <button type="button" aria-expanded={visual.panelOpen} aria-controls="graphics-settings" onClick={visual.togglePanel}>畫面設定</button>
       <button type="button" className="showcase-toggle" disabled={!showcase&&moving} title={!showcase&&moving?'請先停車並完成接送流程':undefined} onClick={()=>visual.setViewMode(showcase?'game':'showcase')}>{showcase?'返回駕駛':'建築展示'}</button>
     </div>
+    {saveNotice&&<p className="save-notice" role="status">{saveNotice}</p>}
     {visual.panelOpen&&<div id="graphics-settings">
-      <label>畫質<select aria-label="畫質" value={visual.quality} onChange={e=>{if(isQuality(e.target.value))visual.setQuality(e.target.value);}}><option value="low">Low · 輕量</option><option value="medium">Medium · 平衡</option><option value="high">High · 精緻</option></select></label>
+      <label>畫質<select aria-label="畫質" value={visual.qualityMode==='auto'?'auto':visual.quality} onChange={e=>{if(e.target.value==='auto')visual.setAutomaticQuality();else if(isQuality(e.target.value))visual.setQuality(e.target.value);}}><option value="auto">自動 · 依裝置調整</option><option value="low">低 Low · 輕量</option><option value="medium">中 Medium · 平衡</option><option value="high">高 High · 精緻</option></select></label>
+      <p className="quality-explanation" role="status">{visual.qualityMode==='auto'?`目前自動採用${visual.quality==='low'?'低':visual.quality==='medium'?'中':'高'}畫質。${visual.qualityReason}`:'已使用手動畫質，不會隨幀率自動切換。'}</p>
       <label className="graphics-check"><input type="checkbox" checked={visual.bloom} disabled={visual.quality!=='high'} onChange={e=>visual.setBloom(e.target.checked)} />柔和高光 Bloom</label>
       <p className="graphics-stats" aria-live="off">{stats?`${Math.round(stats.fps)} FPS · ${stats.calls} draw calls · ${stats.geometries} 幾何 · ${stats.textures} 貼圖`:'正在取樣畫面…'}</p>
       {stats?.environment==='fallback'&&<p>天空環境載入失敗，已保留基本日光。</p>}

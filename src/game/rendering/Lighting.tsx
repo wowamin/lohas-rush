@@ -14,7 +14,7 @@ export function telemetry() {
 }
 
 export function Lighting() {
-  const { gl, scene } = useThree();
+  const { gl, scene, camera } = useThree();
   const quality = useVisual(s => s.quality), profile = QUALITY[quality];
   const sun = useRef<THREE.DirectionalLight>(null);
   useEffect(() => {
@@ -22,13 +22,14 @@ export function Lighting() {
     gl.outputColorSpace = THREE.SRGBColorSpace;
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = .94;
-    gl.shadowMap.enabled = true; gl.shadowMap.type = THREE.PCFSoftShadowMap;
+    gl.shadowMap.enabled = profile.shadows; gl.shadowMap.type = THREE.PCFSoftShadowMap;
+    if(camera instanceof THREE.PerspectiveCamera){camera.far=profile.far;camera.updateProjectionMatrix();}
     const light=sun.current;
     if(light){light.shadow.map?.dispose();light.shadow.map=null;light.shadow.needsUpdate=true;}
     gl.shadowMap.needsUpdate=true;
     scene.environmentIntensity=quality==='low'?.4:.55;
     telemetry().quality=quality;
-  }, [gl,scene,quality]);
+  }, [gl,scene,camera,quality,profile]);
   useEffect(() => {
     let active=true,source:THREE.DataTexture|undefined,filtered:THREE.WebGLRenderTarget|undefined;
     const generator=new THREE.PMREMGenerator(gl);
@@ -52,9 +53,9 @@ export function Lighting() {
   },-.4);
   return <>
     <color attach="background" args={['#c9dce9']} />
-    <fog attach="fog" args={['#c9dce9',180,620]} />
+    <fog attach="fog" args={['#c9dce9',profile.fogNear,profile.fogFar]} />
     <hemisphereLight args={['#e2efff','#857d65',.65]} />
-    <directionalLight ref={sun} color="#fff2dc" intensity={2.8} castShadow
+    <directionalLight ref={sun} color="#fff2dc" intensity={2.8} castShadow={profile.shadows}
       shadow-mapSize={[profile.shadowSize,profile.shadowSize]} shadow-camera-left={-profile.shadowExtent}
       shadow-camera-right={profile.shadowExtent} shadow-camera-top={profile.shadowExtent} shadow-camera-bottom={-profile.shadowExtent}
       shadow-camera-near={1} shadow-camera-far={180} shadow-bias={quality==='low'?-.0003:-.00012} shadow-normalBias={quality==='low'?.12:quality==='medium'?.055:.035} />

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createGltfLoader } from './assets/gltfLoader';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildings, HEADQUARTERS_FOOTPRINT_SCALE } from '../data/city';
 import { disposeModels } from './assets/GameAssets';
@@ -162,7 +162,12 @@ export function HeadquartersBuilding() {
     const container = host.current!;
     let alive = true;
     let model: THREE.Object3D | undefined;
-    void new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}lohas_building_reference.glb`).then(gltf => {
+    const fallback = createHeadquartersBuilding();
+    fallback.scale.set(HEADQUARTERS_FOOTPRINT_SCALE, 1, HEADQUARTERS_FOOTPRINT_SCALE);
+    container.add(fallback);
+    let fallbackDisposed=false;
+    const releaseFallback=()=>{if(!fallbackDisposed){container.remove(fallback);disposeModels([fallback]);fallbackDisposed=true;}};
+    void createGltfLoader(import.meta.env.BASE_URL).loadAsync(`${import.meta.env.BASE_URL}assets/optimized/lohas_building_reference.glb`).then(gltf => {
       if (!alive) {
         disposeModels([gltf.scene]);
         return;
@@ -173,15 +178,14 @@ export function HeadquartersBuilding() {
         disposeModels([gltf.scene]);
       }
       container.add(model);
+      releaseFallback();
     }).catch(error => {
       if (!alive) return;
       console.error('Failed to load the headquarters reference model; using the procedural fallback.', error);
-      model = createHeadquartersBuilding();
-      model.scale.set(HEADQUARTERS_FOOTPRINT_SCALE, 1, HEADQUARTERS_FOOTPRINT_SCALE);
-      container.add(model);
     });
     return () => {
       alive = false;
+      releaseFallback();
       if (model) {
         container.remove(model);
         disposeModels([model]);

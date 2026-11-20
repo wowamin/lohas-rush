@@ -12,6 +12,8 @@ try{
   await page.goto(process.env.TEST_BASE_URL||'http://127.0.0.1:5173/?quality=low');await dismissDrivingGuide(page);
   await page.waitForFunction(()=>window.__LOHAS_RENDERING__?.environment==='ready');
   await expect(page.locator('[data-map-campus]')).toHaveCount(5);
+  await expect(page.locator('.route-map')).toHaveClass(/is-collapsed/);
+  await page.getByRole('button',{name:'展開完整 GPS 地圖'}).click();
   await expect(page.locator('.route-map svg')).toHaveAttribute('viewBox','-722 -722 1444 1444');
   const sites=await page.evaluate(async()=>{
     const {_roots}=await import('/node_modules/.vite/deps/@react-three_fiber.js');

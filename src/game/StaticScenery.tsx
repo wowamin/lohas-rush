@@ -1,4 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { buildings, streetFurniture } from '../data/city';
 import { SIDEWALK_WIDTH } from '../data/streetFurniture';
@@ -7,11 +8,13 @@ import { river, landscapeObstacles } from '../data/landscape';
 import { createSurface, type Surface } from './rendering/materials';
 import { Vegetation } from './rendering/Vegetation';
 import { spatialBatches, STATIC_CELL_SIZE } from './rendering/spatialBatches';
+import { useVisual } from '../stores/visual';
+import { QUALITY } from './rendering/quality';
 
-type Instance = { position: [number, number, number]; size: [number, number, number]; color: string; rotation?: number; owner?: string };
+type Instance = { position: [number, number, number]; size: [number, number, number]; color: string; rotation?: number; owner?: string; detail?: boolean };
 const boxes: Instance[] = [];
-function box(position: Instance['position'], size: Instance['size'], color: string, rotation = 0, owner?: string) {
-  boxes.push({ position, size, color, rotation, owner });
+function box(position: Instance['position'], size: Instance['size'], color: string, rotation = 0, owner?: string, detail = false) {
+  boxes.push({ position, size, color, rotation, owner, detail });
 }
 box([0, -0.2, 0], [CITY_LIMIT * 2, 0.3, CITY_LIMIT * 2], '#b6cda4');
 box([river.x, -0.02, 0], [river.halfWidth * 2, 0.08, CITY_LIMIT * 2], '#8ebcc8');
@@ -34,7 +37,7 @@ for (const road of roads) {
   }
   for (let distance = road.kind === 'street' ? 7 : 2; distance < length - (road.kind === 'street' ? 6 : 1); distance += 5) {
     const t = distance / length;
-    box([a[0] + (b[0] - a[0]) * t, 0.12, a[1] + (b[1] - a[1]) * t], [0.16, 0.015, 2], '#eee9ce', rotation);
+    box([a[0] + (b[0] - a[0]) * t, 0.12, a[1] + (b[1] - a[1]) * t], [0.16, 0.015, 2], '#eee9ce', rotation, undefined, Math.round(distance/5)%2===0);
   }
 }
 for (const junction of streetJunctions) {
@@ -51,8 +54,8 @@ buildings.forEach(b => {
   if (b.location) return;
   const rotation = b.rotation ?? 0, sin = Math.sin(rotation), cos = Math.cos(rotation);
   let owner: string | undefined;
-  const add = (position: Instance['position'], size: Instance['size'], color: string) =>
-    box([b.x + position[0] * cos + position[2] * sin, position[1], b.z + position[2] * cos - position[0] * sin], size, color, rotation, owner);
+  const add = (position: Instance['position'], size: Instance['size'], color: string, detail = false) =>
+    box([b.x + position[0] * cos + position[2] * sin, position[1], b.z + position[2] * cos - position[0] * sin], size, color, rotation, owner, detail);
   add([0, 0.16, 0], [b.halfX * 2 + 2, 0.3, b.halfZ * 2 + 2], '#e4dfcf');
   owner = b.shop ? b.id : undefined;
   if (b.id !== 'headquarters') {
@@ -60,13 +63,13 @@ buildings.forEach(b => {
     add([0, b.height / 2 + 0.3, 0], [b.halfX * 2, b.height, b.halfZ * 2], facade);
     add([0, b.height + 0.45, 0], [b.halfX * 2 + 0.5, 0.35, b.halfZ * 2 + 0.5], '#fcf4e2');
     for (const x of [-0.55, 0, 0.55]) {
-      for (let y = 3; y < b.height; y += 3) add([x * b.halfX, y, b.halfZ + 0.03], [Math.min(1.6, b.halfX * 0.45), 1.5, 0.08], '#75989a');
+      for (let y = 3; y < b.height; y += 3) add([x * b.halfX, y, b.halfZ + 0.03], [Math.min(1.6, b.halfX * 0.45), 1.5, 0.08], '#75989a', true);
     }
   }
   if (b.shop) {
     add([0, 1.4, b.halfZ + 0.05], [1.4, 2.2, 0.1], '#78999b');
     add([0, 2.9, b.halfZ + 0.6], [b.halfX * 2 + 0.4, 0.3, 1.6], '#fff4dd');
-    for (const stripe of [-1, 1]) add([stripe * 2.5, 2.9, b.halfZ + 0.6], [1.3, 0.34, 1.65], b.color);
+    for (const stripe of [-1, 1]) add([stripe * 2.5, 2.9, b.halfZ + 0.6], [1.3, 0.34, 1.65], b.color, true);
   }
   owner = undefined;
 });
@@ -97,7 +100,7 @@ function classify(color: string): Surface {
 const surfaceBatches = new Map<Surface,Instance[]>();
 for(const item of boxes){const surface=classify(item.color),batch=surfaceBatches.get(surface)??[];batch.push(item);surfaceBatches.set(surface,batch);}
 const regions=Array.from(surfaceBatches,([surface,items])=>Array.from(spatialBatches(items),([cell,instances])=>({surface,cell,items:instances}))).flat();
-function Instances({ items, surface, cell, geometry, material, hiddenShops = emptyShops }: { items: Instance[]; surface: Surface; cell:string; geometry:THREE.BoxGeometry; material:THREE.MeshStandardMaterial; hiddenShops?: ReadonlySet<string> }) {
+function Instances({ items, surface, cell, geometry, material, simple, hiddenShops = emptyShops }: { items: Instance[]; surface: Surface; cell:string; geometry:THREE.BoxGeometry; material:THREE.MeshStandardMaterial; simple:boolean; hiddenShops?: ReadonlySet<string> }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   // InstancedMesh supplies instanceColor automatically. BoxGeometry has no
   // per-vertex color attribute, so enabling vertexColors would multiply by zero.
@@ -107,6 +110,7 @@ function Instances({ items, surface, cell, geometry, material, hiddenShops = emp
     const color = new THREE.Color();
     let index = 0;
     items.forEach(item => {
+      if (simple && item.detail) return;
       if (item.owner && hiddenShops.has(item.owner)) return;
       object.position.set(...item.position); object.scale.set(...item.size); object.rotation.set(0, item.rotation ?? 0, 0); object.updateMatrix();
       mesh.current!.setMatrixAt(index, object.matrix);
@@ -118,18 +122,31 @@ function Instances({ items, surface, cell, geometry, material, hiddenShops = emp
     if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
     mesh.current.computeBoundingSphere();
     mesh.current.computeBoundingBox();
-  }, [items, hiddenShops, surface]);
+  }, [items, hiddenShops, surface, simple]);
   return <instancedMesh name={`city-surface-${surface}-${cell}`} userData={{staticCell:cell,staticSurface:surface}} ref={mesh} args={[geometry, material, items.length]} castShadow={!['glass','grass','asphalt','marking','water','tile'].includes(surface)} receiveShadow />;
 }
 
 // Batch by PBR surface; object count does not multiply draw calls.
 export const StaticScenery = memo(function StaticScenery({ hiddenShops }: { hiddenShops: ReadonlySet<string> }) {
+  const quality=useVisual(s=>s.quality),simple=quality==='low';
+  const host=useRef<THREE.Group>(null),timer=useRef(0);
+  useFrame(({camera},delta)=>{
+    timer.current+=delta;if(timer.current<.25||!host.current)return;timer.current=0;
+    let rendered=0;
+    for(const child of host.current.children){
+      const mesh=child as THREE.InstancedMesh,sphere=mesh.boundingSphere;
+      mesh.visible=!!mesh.count&&(!sphere||camera.position.distanceTo(sphere.center)<=QUALITY[quality].sceneryRange+sphere.radius);
+      if(mesh.visible)rendered+=mesh.count;
+    }
+    host.current.userData.renderedInstances=rendered;
+  });
   const geometry=useMemo(()=>new THREE.BoxGeometry(),[]);
-  const materials=useMemo(()=>new Map(Array.from(surfaceBatches.keys(),surface=>[surface,createSurface(surface)])),[]);
-  useEffect(()=>()=>{geometry.dispose();for(const material of materials.values()){material.map?.dispose();material.normalMap?.dispose();material.roughnessMap?.dispose();material.dispose();}},[geometry,materials]);
-  const roadMaterial=useMemo(()=>createSurface('asphalt'),[]),pavingMaterial=useMemo(()=>createSurface('tile',{color:'#e3dfd3'}),[]);
+  const materials=useMemo(()=>new Map(Array.from(surfaceBatches.keys(),surface=>[surface,createSurface(surface,{simple})])),[simple]);
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
+  useEffect(()=>()=>{for(const material of materials.values()){material.map?.dispose();material.normalMap?.dispose();material.roughnessMap?.dispose();material.dispose();}},[materials]);
+  const roadMaterial=useMemo(()=>createSurface('asphalt',{simple}),[simple]),pavingMaterial=useMemo(()=>createSurface('tile',{color:'#e3dfd3',simple}),[simple]);
   useEffect(()=>()=>{for(const material of [roadMaterial,pavingMaterial]){material.map?.dispose();material.normalMap?.dispose();material.roughnessMap?.dispose();material.dispose();}},[roadMaterial,pavingMaterial]);
-  return <><group name="static-city-batches" userData={{cellSize:STATIC_CELL_SIZE,sourceInstances:boxes.length}}>{regions.map(region=><Instances key={`${region.surface}-${region.cell}`} {...region} geometry={geometry} material={materials.get(region.surface)!} hiddenShops={hiddenShops} />)}</group><Vegetation />
+  return <><group ref={host} name="static-city-batches" userData={{cellSize:STATIC_CELL_SIZE,sourceInstances:boxes.length}}>{regions.map(region=><Instances key={`${region.surface}-${region.cell}`} {...region} geometry={geometry} material={materials.get(region.surface)!} hiddenShops={hiddenShops} simple={simple} />)}</group><Vegetation />
     {[INNER_RADIUS, OUTER_RADIUS].map(radius => <group key={radius}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} receiveShadow><ringGeometry args={[radius - 8-SIDEWALK_WIDTH, radius + 8+SIDEWALK_WIDTH, 128]} /><primitive object={pavingMaterial} attach="material" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.11, 0]} receiveShadow><ringGeometry args={[radius - 8, radius + 8, 128]} /><primitive object={roadMaterial} attach="material" /></mesh>

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createGltfLoader } from '../assets/gltfLoader.ts';
 import geometry from './serviceVanGeometry.json' with { type: 'json' };
 import { disposeModels } from '../assets/GameAssets.ts';
 import { CAR_RADIUS } from '../collision/collisionSystem.ts';
@@ -75,9 +75,9 @@ export function createServiceVanFallback() {
   return prepareServiceVan(root);
 }
 
-type LoadOptions = { signal?: AbortSignal; timeoutMs?: number; load?: (url: string) => Promise<THREE.Object3D> };
+type LoadOptions = { signal?: AbortSignal; timeoutMs?: number; base?: string; load?: (url: string) => Promise<THREE.Object3D> };
 export function loadServiceVan(url: string, options: LoadOptions = {}) {
-  const loader = new GLTFLoader();
+  const loader = createGltfLoader(options.base ?? './');
   const load = options.load ?? (path => loader.loadAsync(path).then(gltf => gltf.scene));
   return new Promise<THREE.Object3D>((resolve, reject) => {
     let settled = false;

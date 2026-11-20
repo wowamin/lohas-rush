@@ -21,6 +21,7 @@ export function DrivingGuide({touch, onClose}:{touch:boolean;onClose:()=>void}) 
     <h2 id="guide-title">開車探索城市，從每一站認識樂活。</h2>
     <p id="guide-intro">自由駕駛，或跟著金色導航依序走訪大和、安南、龍山、義合、新營。駛入圓環會自動記錄抵達；奶奶上下車是可自由選擇的體驗。</p>
     <h3>{touch?'手機／平板觸控':'桌機鍵盤與滑鼠'}</h3>
+    {touch&&<p className="guide-landscape-tip">建議橫向遊玩：左手拖曳方向搖桿，右手操作油門、煞車與倒車。</p>}
     <ol className="guide-steps">
       <li><strong>先試著出發</strong><span>{touch?'按住右下「油門」前進，「倒車」後退；用左側方向鍵或方向搖桿轉向。':'W／↑ 加速，S／↓ 減速後倒車；A、D／←、→ 左右轉向。'}</span></li>
       <li><strong>慢慢靠近目的地</strong><span>{touch?'按住「煞車」停穩。金色路線只提供引導，你也可以自由探索。':'按住 Space 煞車停穩。金色路線只提供引導，你也可以自由探索。'}</span></li>

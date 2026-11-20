@@ -1,6 +1,7 @@
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
+import {dismissOrientationNotice} from './browser-support.mjs';
 const browser=await chromium.launch({channel:'chrome',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const url=process.env.TEST_BASE_URL||'http://127.0.0.1:5173/';
 await mkdir('.test-artifacts',{recursive:true});
@@ -15,6 +16,7 @@ try{
   assert.equal(await desktop.locator('.map-vehicle').getAttribute('transform'),before,'reading the guide must not move the vehicle');
   await expect(desktop.locator('.passenger-status strong')).toHaveText('兩位乘客在車內');
   await desktop.getByRole('button',{name:'略過引導',exact:true}).click();
+  await desktop.locator('main[data-loading-state="ready"]').waitFor({timeout:30000});
   await expect(desktop.getByRole('dialog')).toHaveCount(0);
   await desktop.keyboard.down('w');await expect.poll(()=>desktop.locator('.speed-panel strong').innerText().then(Number)).toBeGreaterThan(5);
   await desktop.keyboard.up('w');await desktop.keyboard.press('r');
@@ -28,9 +30,12 @@ try{
   mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(url);
   await expect(mobile.getByRole('dialog')).toContainText('手機／平板觸控');
   await mobile.getByRole('button',{name:'開始探索',exact:true}).click();
+  await mobile.locator('main[data-loading-state="ready"]').waitFor({timeout:30000});
+  await dismissOrientationNotice(mobile);
   await expect(mobile.locator('.destination-strip')).toContainText('下一站：永春大和日照中心');
   for(const [width,height,name] of [[390,844,'portrait'],[844,390,'landscape'],[320,568,'small'],[667,375,'short-landscape'],[568,320,'small-landscape']]){
     await mobile.setViewportSize({width,height});
+    await dismissOrientationNotice(mobile);
     await mobile.waitForTimeout(300);
     for(const expanded of [false,true]){
       if(expanded)await mobile.getByRole('button',{name:'展開資訊欄',exact:true}).click();
@@ -46,9 +51,9 @@ try{
     await mobile.screenshot({path:'.test-artifacts/v01-mobile-'+name+'.png'});
   }
   await mobile.locator('.route-map-toggle').click();
-  await expect(mobile.locator('.route-map')).toHaveClass(/is-collapsed/);
-  await mobile.locator('.route-map-toggle').click();
   await expect(mobile.locator('.route-map')).not.toHaveClass(/is-collapsed/);
+  await mobile.locator('.route-map-toggle').click();
+  await expect(mobile.locator('.route-map')).toHaveClass(/is-collapsed/);
   await mobile.close();
   const blocked=await browser.newPage();
   await blocked.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new Error('blocked storage');};Storage.prototype.setItem=()=>{throw new Error('blocked storage');};});

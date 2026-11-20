@@ -2,6 +2,9 @@ import React, { lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './style.css';
+import { registerPwa } from './pwa/register';
+
+registerPwa();
 
 const PedestrianStreetPreview = lazy(() => import('./game/streets/PedestrianStreetPreview'));
 const ChihkanTowerPreview = lazy(() => import('./components/ChihkanTowerEmbed'));

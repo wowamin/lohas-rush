@@ -79,6 +79,7 @@ try {
     assert.deepEqual(outside.driver,[-1.3,.14,2.6]);assert.equal(outside.operating,false);
     assert.equal(outside.caregiverGrip,1);assert.ok(Math.abs(outside.caregiver[2]-5.22)<1e-6);
     assert.deepEqual(outside.grandpa,initial.grandpa); assert.equal(outside.grandma[2],4.5); assert.equal(outside.deck,.14);
+    console.log(`CHECK: ${fallback?'Mobile fallback':'Desktop Draco GLB'} completed unloading and ground handoff.`);
     await page.keyboard.down('w'); await page.waitForTimeout(150); await page.keyboard.up('w');
     await page.keyboard.down('Space'); await page.waitForTimeout(400); await page.keyboard.up('Space');
     assert.deepEqual((await sceneState()).car,initial.car,'outside wheelchair locks driving');
@@ -116,7 +117,13 @@ try {
     await expect.poll(async()=> Math.abs((await sceneState()).hatch)).toBeLessThan(.001);
     assert.equal((await sceneState()).grandmaInside,true);
     const returned=await sceneState();assert.equal(returned.driverInside,true);assert.ok(Math.abs(returned.driverDoor)<.001);assert.deepEqual(returned.driver,initial.driver);
+    console.log(`CHECK: ${fallback?'Mobile fallback':'Desktop Draco GLB'} completed boarding and closed the doors.`);
     if (fallback) await action.tap(); else await page.keyboard.press('e');
+    // Check each real phase separately. A software renderer can take longer
+    // than 15 wall-clock seconds to simulate the whole multi-stage sequence.
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機大哥下車準備',{timeout:15000});
+    await expect(page.locator('.passenger-status strong')).toHaveText('司機前往車尾控制台',{timeout:15000});
+    await expect(page.locator('.passenger-status strong')).toHaveText('後車門開啟中',{timeout:15000});
     await expect(page.locator('.passenger-status strong')).toHaveText('升降平台展開中',{timeout:15000});
     await page.keyboard.press('r');
     await expect(page.locator('.passenger-status strong')).toHaveText('兩位乘客在車內');

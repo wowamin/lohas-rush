@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../stores/game';
 import { touchController, type TouchAction } from './vehicle/touchController';
+import { FirstTimeHint } from '../components/FirstTimeHint';
+import { useVisual } from '../stores/visual';
+
+function touchFeedback(pointerType:string) {
+  if(pointerType!=='touch')return;
+  try{navigator.vibrate?.(8);}catch{/* Unsupported or disallowed vibration never blocks input. */}
+}
 
 const controls: { action: TouchAction; label: string; symbol: string }[] = [
   { action: 'left', label: '左轉', symbol: '◀' },
@@ -10,8 +17,10 @@ const controls: { action: TouchAction; label: string; symbol: string }[] = [
   { action: 'gas', label: '油門', symbol: '油門' },
 ];
 
-export function TouchControls() {
+export function TouchControls({ready}:{ready:boolean}) {
   const outside=useGame(s=>s.transferPhase==='outside');
+  const paused=useGame(s=>s.controlsPaused),view=useVisual(s=>s.viewMode);
+  const [showHint,setShowHint]=useState(()=>matchMedia('(max-width: 699px) and (orientation: portrait)').matches);
   const [pressed, setPressed] = useState<Record<number, TouchAction>>({});
   const [joystick, setJoystick] = useState<{ pointerId: number; x: number } | null>(null);
   const joystickRef = useRef<HTMLButtonElement>(null);
@@ -19,6 +28,9 @@ export function TouchControls() {
     const clear = () => { touchController.clear(); setPressed({}); setJoystick(null); };
     const visibility = () => { if (document.hidden) clear(); };
     const query = window.matchMedia('(any-pointer: coarse), (max-width: 850px)');
+    const orientation = window.matchMedia('(orientation: portrait)');
+    const hintQuery=matchMedia('(max-width: 699px) and (orientation: portrait)');
+    const hintChanged=()=>setShowHint(hintQuery.matches);
     const modeChanged = () => { if (!query.matches) clear(); };
     const unsubscribe = useGame.subscribe((state, previous) => {
       if (state.resetKey !== previous.resetKey || (state.controlsPaused && !previous.controlsPaused) || (state.transferPhase === 'outside') !== (previous.transferPhase === 'outside')) clear();
@@ -26,12 +38,16 @@ export function TouchControls() {
     window.addEventListener('blur', clear);
     document.addEventListener('visibilitychange', visibility);
     query.addEventListener('change', modeChanged);
+    orientation.addEventListener('change', clear);
+    hintQuery.addEventListener('change',hintChanged);
     clear();
     return () => {
       unsubscribe(); touchController.clear();
       window.removeEventListener('blur', clear);
       document.removeEventListener('visibilitychange', visibility);
       query.removeEventListener('change', modeChanged);
+      orientation.removeEventListener('change', clear);
+      hintQuery.removeEventListener('change',hintChanged);
     };
   }, []);
 
@@ -52,13 +68,14 @@ export function TouchControls() {
     setJoystick({ pointerId, x: offset });
   };
   return <section className="touch-controls" aria-label={outside ? '輪椅操作' : '觸控駕駛'}>
-    <p>{outside ? '奶奶輪椅：前進／後退・左右轉向・停下' : '按住油門前進・倒車後退・左右轉向'}</p>
+    <FirstTimeHint key={outside?'wheelchair':'driving'} id={outside?'wheelchair':'touch-driving'} className="touch-hint" enabled={ready&&showHint&&!paused&&view==='game'}><p>{outside ? '奶奶輪椅：前進／後退・左右轉向・停下' : '按住油門前進・倒車後退・左右轉向'}</p></FirstTimeHint>
     <div className="touch-buttons">
       <button ref={joystickRef} type="button" className="touch-joystick" aria-label="虛擬搖桿：拖曳控制方向" aria-pressed={joystick !== null}
         onContextMenu={event => event.preventDefault()}
         onPointerDown={event => {
           if (event.button !== 0) return;
           event.preventDefault();
+          touchFeedback(event.pointerType);
           event.currentTarget.setPointerCapture(event.pointerId);
           steerJoystick(event.pointerId, event.clientX);
         }}
@@ -83,6 +100,7 @@ export function TouchControls() {
         onPointerDown={event => {
           if (event.button !== 0) return;
           event.preventDefault();
+          touchFeedback(event.pointerType);
           event.currentTarget.setPointerCapture(event.pointerId);
           touchController.press(event.pointerId, action);
           setPressed(previous => ({ ...previous, [event.pointerId]: action }));

@@ -1,0 +1,111 @@
+{
+  "models": [
+    {
+      "input": "public/assets/models/lohas_service_van.glb",
+      "output": "public/assets/optimized/lohas_service_van.glb",
+      "before": 235088,
+      "after": 36820,
+      "reduction": "84.3%"
+    },
+    {
+      "input": "public/lohas_building_reference.glb",
+      "output": "public/assets/optimized/lohas_building_reference.glb",
+      "before": 318660,
+      "after": 14168,
+      "reduction": "95.6%"
+    }
+  ],
+  "textures": [
+    {
+      "output": "public/assets/textures/plaster-color.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 25404
+    },
+    {
+      "output": "public/assets/textures/plaster-normal.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 39844
+    },
+    {
+      "output": "public/assets/textures/plaster-roughness.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 26148
+    },
+    {
+      "output": "public/assets/textures/concrete-color.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 25404
+    },
+    {
+      "output": "public/assets/textures/concrete-normal.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 47572
+    },
+    {
+      "output": "public/assets/textures/concrete-roughness.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 26116
+    },
+    {
+      "output": "public/assets/textures/asphalt-color.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 35000
+    },
+    {
+      "output": "public/assets/textures/asphalt-normal.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 60594
+    },
+    {
+      "output": "public/assets/textures/asphalt-roughness.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 26096
+    },
+    {
+      "output": "public/assets/textures/tile-color.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 26714
+    },
+    {
+      "output": "public/assets/textures/tile-normal.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 50296
+    },
+    {
+      "output": "public/assets/textures/tile-roughness.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 26098
+    },
+    {
+      "output": "public/assets/textures/grass-color.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 44318
+    },
+    {
+      "output": "public/assets/textures/grass-normal.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 47572
+    },
+    {
+      "output": "public/assets/textures/grass-roughness.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 26112
+    }
+  ],
+  "decoderBytes": 763341
+}

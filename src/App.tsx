@@ -17,6 +17,11 @@ import { RenderEffects } from './game/rendering/RenderEffects';
 import { ShowcaseCamera } from './game/rendering/ShowcaseCamera';
 import { useVisual } from './stores/visual';
 import { QUALITY } from './game/rendering/quality';
+import { OfflinePanel } from './components/OfflinePanel';
+import { LoadingProgress, useStartupLoading } from './components/LoadingProgress';
+import { AdaptiveQuality } from './game/rendering/AdaptiveQuality';
+import { OrientationNotice, useOrientationAdvice } from './components/OrientationNotice';
+import { FirstTimeHint } from './components/FirstTimeHint';
 
 function supported() {
   try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; }
@@ -38,7 +43,8 @@ function CameraSwitch() {
   return <button type="button" className="camera-switch" disabled={servicing} onClick={event => { cycle(); if (event.detail > 0) event.currentTarget.blur(); }} aria-label={outside ? '奶奶輪椅跟隨鏡頭' : servicing ? '接送視角，收妥後可切換鏡頭' : `切換鏡頭，目前為${label}`} title={outside ? '輪椅模式自動跟隨' : servicing ? '接送完成後可切換' : '切換跟車／高視角（C）'}>鏡頭：{label}</button>;
 }
 
-function HUD({touch, onHelp, onJournal}:{touch:boolean;onHelp:()=>void;onJournal:()=>void}) {
+function HUD({touch, ready, onHelp, onJournal}:{touch:boolean;ready:boolean;onHelp:()=>void;onJournal:()=>void}) {
+  const paused=useGame(s=>s.controlsPaused),view=useVisual(s=>s.viewMode);
   const [missionCollapsed, setMissionCollapsed] = useState(touch);
   const speed = useGame(s => s.speed);
   const phase = useGame(s => s.transferPhase);
@@ -80,23 +86,26 @@ function HUD({touch, onHelp, onJournal}:{touch:boolean;onHelp:()=>void;onJournal
       </div>
     </aside>
     <section className="destination-strip" aria-label="目前目的地與下一步"><div><strong>{completed?'五站任務完成':`下一站：${locations[mission].name}`}</strong><span>{completed?'可自由探索或重新開始':`直線距離 ${distance} m`}</span><small>{outside?'回到車尾標記，停下後點「奶奶上車」':phase!=='stowed'?'接送進行中，請等候動作完成':atArrival?speed>0?'已抵達，請煞車至 0 km/h 後互動':'已抵達並停穩，可點「奶奶下車」':completed?'謝謝你一路相伴。':distance<=18?'接近目的地，慢慢駛入金色圓環':'自由探索，或沿金色路線前往下一站'}</small></div><button type="button" aria-label="重新開始旅程" onClick={reset}>重來</button></section>
-    <div className="drive-caption"><span>EXPLORE AT YOUR OWN PACE</span><p>慢慢開，把關懷送到每一站。</p></div>
+    {!touch&&<FirstTimeHint id="desktop-driving" className="drive-caption" enabled={ready&&!paused&&view==='game'}><span>EXPLORE AT YOUR OWN PACE</span><p>WASD 駕駛 · Space 煞車</p></FirstTimeHint>}
     <section className="speed-panel" aria-label={`${outside?'輪椅速度':'車速'} ${speed} 公里每小時`}><span className="eyebrow">{outside?'WHEELCHAIR · 奶奶':'SERVICE VAN · 01'}</span><div><strong>{String(speed).padStart(2, '0')}</strong><span>km/h</span></div><div className="speed-track"><i style={{ width: `${Math.min(speed / (outside?6.5:120) * 100, 100)}%` }} /></div><small>{outside?'輪椅探索・巴士停駐':completed ? '自由探索中' : '樂活服務車 · 行程進行中'}</small><CameraSwitch /></section>
     <footer><span className="keyboard-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 方向鍵 <span>{outside?'輪椅移動':'駕駛'}</span></span><span><kbd>Space</kbd> {outside?'停下':'煞車'}</span><span><kbd>C</kbd> 切換鏡頭</span><span><kbd>R</kbd> 重置車輛與行程</span><span className="mouse-look-hint">右鍵拖曳：環繞視角・滾輪縮放</span><span className="footer-note">單人 · 鍵盤／觸控操作</span></footer>
-    <TouchControls />
+    <TouchControls ready={ready} />
     <PassengerControls />
     <RouteMap />
   </>;
 }
 export default function App() {
+  const loading=useStartupLoading();
   const quality=useVisual(s=>s.quality),viewMode=useVisual(s=>s.viewMode);
-  const [overlay,setOverlay]=useState<'guide'|'journal'|null>(()=>needsDrivingGuide()?'guide':null);
+  const [overlay,setOverlay]=useState<'guide'|'journal'|'offline'|null>(()=>needsDrivingGuide()?'guide':null);
   const guideOpen=overlay==='guide';
+  const orientation=useOrientationAdvice();
+  const orientationOpen=loading.ready&&overlay===null&&viewMode==='game'&&orientation.recommended;
   useLayoutEffect(()=>{
-    useGame.getState().setControlsPaused(overlay!==null||viewMode==='showcase');
+    useGame.getState().setControlsPaused(!loading.ready||overlay!==null||viewMode==='showcase'||orientationOpen);
     return ()=>useGame.getState().setControlsPaused(false);
-  },[overlay,viewMode]);
-  const changeOverlay=(value:'guide'|'journal'|null)=>{useGame.getState().setControlsPaused(value!==null||viewMode==='showcase');setOverlay(value);};
+  },[overlay,viewMode,loading.ready,orientationOpen]);
+  const changeOverlay=(value:'guide'|'journal'|'offline'|null)=>{useGame.getState().setControlsPaused(!loading.ready||value!==null||viewMode==='showcase'||(value===null&&orientation.recommended));setOverlay(value);};
   const [mobileGraphics, setMobileGraphics] = useState(() => window.matchMedia('(any-pointer: coarse), (max-width: 850px)').matches);
   useEffect(() => {
     const query = window.matchMedia('(any-pointer: coarse), (max-width: 850px)');
@@ -106,5 +115,5 @@ export default function App() {
   }, []);
   const [hasWebGL] = useState(supported);
   const [contextLost, setContextLost] = useState(false);
-  return <main data-view-mode={viewMode} data-guide-state={hasWebGL&&!contextLost&&guideOpen?'open':'closed'}><GraphicsBoundary>{hasWebGL && !contextLost ? <><Canvas shadows="soft" dpr={[1,QUALITY[quality].dpr]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ position: [SPAWN.x, 9, SPAWN.z + 14], fov: 58, near: 0.1, far: 640 }} fallback={<GraphicsFallback />} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); }, { once: true }); }}><City /><Car lowDetail={quality==='low'} /><ShowcaseCamera /><RenderEffects /></Canvas><HUD touch={mobileGraphics} onHelp={()=>changeOverlay('guide')} onJournal={()=>changeOverlay('journal')} /><GraphicsControls />{guideOpen&&<DrivingGuide touch={mobileGraphics} onClose={()=>changeOverlay(null)} />}{overlay==='journal'&&<ExplorationJournal onClose={()=>changeOverlay(null)} />}<ExplorationNotices /></> : <GraphicsFallback />}</GraphicsBoundary></main>;
+  return <main data-view-mode={viewMode} data-loading-state={loading.ready?'ready':'loading'} data-orientation-state={orientationOpen?'open':'closed'} data-guide-state={hasWebGL&&!contextLost&&guideOpen?'open':'closed'}><GraphicsBoundary>{hasWebGL && !contextLost ? <><Canvas shadows={QUALITY[quality].shadows ? 'soft' : false} dpr={[1,QUALITY[quality].dpr]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ position: [SPAWN.x, 9, SPAWN.z + 14], fov: 58, near: 0.1, far: 640 }} fallback={<GraphicsFallback />} onCreated={({ gl }) => { gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setContextLost(true); }, { once: true }); }}><City /><Car lowDetail={quality==='low'} /><ShowcaseCamera /><RenderEffects /><AdaptiveQuality /></Canvas><LoadingProgress loading={loading} /><HUD ready={loading.ready&&!orientationOpen&&overlay===null} touch={mobileGraphics} onHelp={()=>changeOverlay('guide')} onJournal={()=>changeOverlay('journal')} /><GraphicsControls onOffline={()=>changeOverlay('offline')} />{guideOpen&&<DrivingGuide touch={mobileGraphics} onClose={()=>changeOverlay(null)} />}{overlay==='journal'&&<ExplorationJournal onClose={()=>changeOverlay(null)} />}{overlay==='offline'&&<OfflinePanel onClose={()=>changeOverlay(null)} />}{orientationOpen&&<OrientationNotice onContinue={orientation.dismiss} />}<ExplorationNotices /></> : <GraphicsFallback />}</GraphicsBoundary></main>;
 }
