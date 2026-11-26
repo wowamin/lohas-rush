@@ -15,6 +15,7 @@ import { QiguCenterBuilding } from './QiguCenterBuilding';
 import { Lighting } from './rendering/Lighting';
 import { CenterCampuses } from './CenterCampuses';
 import { NearbyWorldLabels } from './NearbyWorldLabels';
+import { CenterInteriorEntrances } from './CenterInteriorEntrances';
 export function City() {
   const [hiddenShops, setHiddenShops] = useState<ReadonlySet<string>>(new Set());
   const mission = useGame(s => s.missionIndex);
@@ -29,6 +30,7 @@ export function City() {
     <XinyingCenterBuilding />
     <QiguCenterBuilding id="longshan" />
     <QiguCenterBuilding id="yihe" />
+    <CenterInteriorEntrances />
     <ChairpersonNPC />
     <StreamedAssets onShopsChanged={setHiddenShops} />
     <NavigationRoute />

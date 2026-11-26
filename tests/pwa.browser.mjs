@@ -130,6 +130,20 @@ try {
     await expect(fresh.locator('.route-stop.visited')).toHaveCount(2);
     await expect(fresh.locator('.speed-panel strong')).toHaveText('00');
     await fresh.close();
+    // A new lazy preview must launch offline without mounting the city's save hooks.
+    const citySaveBeforePreview = await readSave(page);
+    const interior = await context.newPage();
+    interior.on('pageerror', error => errors.push(error.message));
+    await interior.goto(origin + base + '?scene=dahe');
+    await expect(interior.locator('.dahe-preview')).toHaveAttribute('data-dahe-progress', '0');
+    await interior.getByRole('button', { name: '看看這裡', exact: false }).click();
+    await expect(interior.getByRole('dialog')).toBeVisible();
+    await interior.getByRole('button', { name: '記下這個角落', exact: true }).click();
+    await expect(interior.locator('.dahe-preview')).toHaveAttribute('data-dahe-progress', '1');
+    await interior.reload();
+    await expect(interior.locator('.dahe-preview')).toHaveAttribute('data-dahe-progress', '1');
+    assert.deepEqual(await readSave(interior), citySaveBeforePreview, 'preview reload must preserve the city save');
+    await interior.close();
     await context.setOffline(false);
     if (!mobile) {
       const otherCache = `lohas-rush-offline:${origin}/other-game/:keep`;
@@ -162,7 +176,7 @@ try {
     await expect(page.locator('[data-exploration-marker=daihe]')).toHaveAttribute('data-exploration-status', 'completed');
     assert.deepEqual(errors, []);
     await context.close();
-    console.log(`PASS: ${base} manifest/installability, atomic precache, offline reload/new window, restored physics/journal, modal pause and persistent reset${mobile ? '' : ', fullscreen, waiting update and scoped cache cleanup'}.`);
+    console.log(`PASS: ${base} manifest/installability, atomic precache, offline reload/new window, restored physics/journal, modal pause, persistent reset and independent offline Dahe preview${mobile ? '' : ', fullscreen, waiting update and scoped cache cleanup'}.`);
   }
 
   const failure = await launchContext(); await seed(failure);
