@@ -10,7 +10,7 @@ export function roundedCharacterBox(size: Point, roundness = .21) {
   return new RoundedBoxGeometry(...size, 2, Math.min(...size) * roundness);
 }
 
-export function tailoredCharacterGeometry(profile: [y: number, width: number, depth: number][]) {
+export function tailoredCharacterGeometry(profile: [y: number, width: number, depth: number][], capped: boolean | 'top' = false) {
   const vertices: number[] = [], indices: number[] = [], segments = 32;
   for (const [y, width, depth] of profile) for (let j = 0; j <= segments; j++) {
     const angle = j / segments * Math.PI * 2;
@@ -19,6 +19,14 @@ export function tailoredCharacterGeometry(profile: [y: number, width: number, de
   for (let i = 0; i < profile.length - 1; i++) for (let j = 0; j < segments; j++) {
     const a = i * (segments + 1) + j, b = a + segments + 1;
     indices.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  if (capped) {
+    const bottom = vertices.length / 3, top = bottom + 1, last = (profile.length - 1) * (segments + 1);
+    vertices.push(0, profile[0][0], 0, 0, profile[profile.length - 1][0], 0);
+    for (let j = 0; j < segments; j++) {
+      if (capped === true) indices.push(bottom, j + 1, j);
+      indices.push(top, last + j, last + j + 1);
+    }
   }
   const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;

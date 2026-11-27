@@ -12,6 +12,22 @@ import { disposeModels } from '../src/game/assets/GameAssets.ts';
 import {createCaregiverModel,poseCaregiver} from '../src/game/vehicle/caregiverModel.ts';
 import {caregiverPose} from '../src/game/vehicle/caregiverPose.ts';
 
+test('driver hips follow the crouching torso while the feet retain their standing height',()=>{
+  const model=createDriverModel(),point=new Vector3();
+  try{
+    poseDriver(model,{...driverPose('opening'),crouch:0},0);model.root.updateMatrixWorld(true);
+    const height=model.ankles.map(ankle=>ankle.getWorldPosition(new Vector3()).y);
+    for(const crouch of [.05,.10,.15,.20,.25]){
+      poseDriver(model,{...driverPose('opening'),crouch},0);model.root.updateMatrixWorld(true);
+      for(let i=0;i<2;i++){
+        assert(Math.abs(model.legs[i].position.y-.60-model.torso.position.y)<1e-9,'hips must not remain above the waist');
+        assert(Math.abs(model.ankles[i].getWorldPosition(point).y-height[i])<1e-9,'crouching must not push the feet through the floor');
+        assert(Math.abs(model.legs[i].rotation.x+model.knees[i].rotation.x+model.ankles[i].rotation.x)<1e-9,'shoe soles stay level');
+      }
+    }
+  }finally{disposeModels([model.root]);}
+});
+
 test('both front occupants clear the fixed seat backs throughout entry and exit',()=>{
   const driver=createDriverModel(),caregiver=createCaregiverModel(),point=new Vector3();
   const backs=[-.55,.55].map(x=>new Box3(new Vector3(x-.239,.981,-.789),new Vector3(x+.239,1.679,-.616)));

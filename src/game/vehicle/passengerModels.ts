@@ -1,6 +1,34 @@
 import * as THREE from 'three';
 import { CharacterGeometry, addCharacterFace, tailoredCharacterGeometry } from '../characters/characterGeometry.ts';
 
+function seatedSkirtGeometry() {
+  // One smooth cloth surface bends from the waist, across the seated thighs,
+  // and down over the knees. The rear stays above the wheelchair cushion.
+  const profile = [
+    [.65,0,.157,.115], [.61,.015,.165,.07], [.58,.08,.17,.06],
+    [.575,.17,.17,.057], [.53,.25,.167,.06], [.44,.268,.163,.058], [.32,.27,.157,.056],
+  ];
+  const path = new THREE.CatmullRomCurve3(profile.map(([y,z]) => new THREE.Vector3(0,y,z)));
+  const positions: number[] = [], indices: number[] = [], rings = 36, segments = 32;
+  for (let i = 0; i <= rings; i++) {
+    const t = i / rings, center = path.getPoint(t), tangent = path.getTangent(t);
+    const p = t * (profile.length - 1), a = Math.min(profile.length - 2, Math.floor(p)), blend = p - a;
+    const width = THREE.MathUtils.lerp(profile[a][2], profile[a + 1][2], blend);
+    const depth = THREE.MathUtils.lerp(profile[a][3], profile[a + 1][3], blend);
+    for (let j = 0; j < segments; j++) {
+      const angle = j / segments * Math.PI * 2, offset = Math.cos(angle) * depth;
+      positions.push(Math.sin(angle) * width, center.y + tangent.z * offset, center.z - tangent.y * offset);
+    }
+    if (i < rings) for (let j = 0; j < segments; j++) {
+      const a = i * segments + j, b = i * segments + (j + 1) % segments;
+      indices.push(a, a + segments, b, b, a + segments, b + segments);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
+}
+
 // Project-authored 3D approximations of the supplied IP character sheets, not photo billboards.
 export function createPassengerModel(role: 'grandma' | 'grandpa') {
   const root = new THREE.Group(); root.name = role;
@@ -60,8 +88,13 @@ export function createPassengerModel(role: 'grandma' | 'grandpa') {
     box([0,1.15,.256],[.045,.018,.018],'#ac294d');
     for(const side of [-1,1])tube([side*.164,1.15,.252],[side*.235,1.15,.09],.006,'#ac294d');
     for (let i = 0; i < 7; i++) { const a = i/6*Math.PI; ball([Math.cos(a)*.14,.88-Math.sin(a)*.045,.15],.018,'#fff5df'); }
-    add(new THREE.CylinderGeometry(.17,.23,.28,10),'#d84669',[0,.44,.12]);
-    box([-.10,.25,.2],[.09,.18,.10],skin); box([.10,.25,.2],[.09,.18,.10],skin);
+    // A seated skirt rests on the cushion and drapes over the knees only at
+    // the front. A standing cone here flared through and below the chair.
+    add(seatedSkirtGeometry(),'#d84669');
+    for (const side of [-1,1]) {
+      ball([side*.095,.51,.235],.045,skin);
+      tube([side*.095,.51,.235],[side*.095,.22,.255],.04,skin);
+    }
     add(new THREE.CylinderGeometry(.052,.043,.12,10),'#c9915d',[-.26,.76,.26]);
     tube([-.26,.82,.26],[-.255,.92,.26],.007,'#4f9774');
     for (let i=0;i<5;i++) ball([-.29+(i%3)*.022,.72+(i%2)*.022,.302],.009,'#604939');

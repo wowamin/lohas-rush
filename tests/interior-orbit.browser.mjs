@@ -50,6 +50,7 @@ try {
     await page.screenshot({ path: `${folder}/${center.id}-orbit.png` });
     await reset(page); assert(delta((await read(page)).position, initial.position) < .04);
     report.centers.push(center.id);
+    console.log(`PASS: ${center.id} drag and camera reset preserve grandma's position.`);
   }
   await ready(page, CENTER_INTERIORS[0]); const initial = await read(page);
   for (let i = 1; i <= 4; i++) {
@@ -58,6 +59,7 @@ try {
     assert(Math.abs(Math.atan2(Math.sin(current.yaw - expected), Math.cos(current.yaw - expected))) < .035, 'right drag covers 360 degrees');
     assert.deepEqual(current.pose, initial.pose);
   }
+  console.log('PASS: four right drags cover 360 degrees.');
   await reset(page); await drag(page, Math.PI / 2 / .005);
   const facing = await read(page);
   await page.keyboard.down('w'); await page.waitForTimeout(450); await page.keyboard.up('w'); await settle(page);
@@ -67,7 +69,10 @@ try {
   await page.keyboard.press('r'); await settle(page);
   let p = await point(page); await page.mouse.move(p.x, p.y); await page.mouse.wheel(0, -10000); await settle(page);
   assert(Math.abs((await read(page)).radius - 4) < .04);
-  await page.mouse.wheel(0, 10000); await settle(page); assert(Math.abs((await read(page)).radius - 14) < .04);
+  // Wheel deltas are intentionally capped by the reused city orbit math.
+  // Exercise sustained scrolling rather than expecting one event to jump 4→14.
+  for (let i = 0; i < 3; i++) await page.mouse.wheel(0, 10000);
+  await settle(page); assert(Math.abs((await read(page)).radius - 14) < .04);
   await reset(page); await drag(page, 0, 220); let high = await read(page);
   assert(high.position[1] > initial.position[1] && high.position.every(Number.isFinite));
   const held = await read(page); await page.mouse.move(1000, 500); await settle(page); assert(delta((await read(page)).position, held.position) < .04);
@@ -115,4 +120,8 @@ try {
   report.touch = true; assert.deepEqual(report.errors, []); report.passed = true;
   console.log('PASS: single-finger orbit, two-finger zoom, independent movement pad and resize cancellation.');
   await context.close();
+} catch (error) {
+  report.failure = error.stack ?? String(error);
+  for (const [i, context] of browser.contexts().entries()) for (const [j, page] of context.pages().entries()) await page.screenshot({ path: `${folder}/failure-${i}-${j}.png` }).catch(() => {});
+  throw error;
 } finally { await writeFile(`${folder}/validation.json`, JSON.stringify(report, null, 2)); await browser.close(); }

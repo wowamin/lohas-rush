@@ -17,7 +17,11 @@ export function createDriverModel() {
     const ball=(p:[number,number,number],r:number,c:string,s:[number,number,number]=[1,1,1])=>add(new THREE.SphereGeometry(r,20,14),c,p,s);
     add(tailoredCharacterGeometry([[.625,.195,.142],[.68,.194,.146],[.76,.186,.14],[.87,.20,.147],
       [.96,.214,.15],[1.013,.217,.132],[1.045,.16,.10],[1.055,.075,.068]]),blue);
-    box([0,.62,0],[.42,.065,.31],navy);box([0,.62,.164],[.10,.05,.014],'#bac0c0');
+    // A continuous, tapered pelvis closes the waist-to-thigh gap without two
+    // oversized hip lobes. Keep the existing torso and leg animation pivots.
+    add(tailoredCharacterGeometry([[.455,.05,.045],[.475,.13,.09],[.51,.18,.12],[.55,.192,.137],[.59,.192,.141],[.625,.19,.14]],true),navy);
+    // A thin oval waistband follows the trousers instead of a box across the waist.
+    add(tailoredCharacterGeometry([[.607,.191,.141],[.612,.196,.146],[.63,.196,.146],[.635,.192,.142]]),navy);
     for(const side of [-1,1])ball([side*.075,1.025,.14],.065,blue,[1,.55,.4]);
     addCharacterFace(add,[0,1.28,.015],[.242,.242,.230],skin);
     ball([0,1.34,-.07],.225,dark,[1,1,.85]);
@@ -43,9 +47,9 @@ export function createDriverModel() {
   root.add(torso);
   const legs:THREE.Group[]=[],knees:THREE.Group[]=[],ankles:THREE.Group[]=[],arms:THREE.Group[]=[],elbows:THREE.Group[]=[];
   for(const side of [-1,1]){
-    const leg=new THREE.Group();leg.position.set(side*.125,.60,0);root.add(leg);legs.push(leg);
-    leg.add(batch(add=>{add(tailoredCharacterGeometry([[-.265,.078,.09],[-.22,.082,.097],[-.10,.089,.104],[0,.087,.103]]),navy);
-      add(roundedCharacterBox([.035,.11,.15]),navy,[side*.10,-.12,.01]);
+    const leg=new THREE.Group();leg.position.set(side*.10,.60,0);root.add(leg);legs.push(leg);
+    leg.add(batch(add=>{add(tailoredCharacterGeometry([[-.265,.078,.09],[-.22,.082,.097],[-.10,.089,.104],[0,.087,.103]],'top'),navy);
+      add(roundedCharacterBox([.012,.10,.12]),navy,[side*.089,-.12,.01]);
     }));
     const knee=new THREE.Group();knee.position.y=-.27;leg.add(knee);knees.push(knee);
     knee.add(batch(add=>{add(tailoredCharacterGeometry([[-.255,.073,.085],[-.21,.076,.089],[-.10,.082,.095],[0,.080,.093]]),navy);
@@ -73,12 +77,15 @@ export function createDriverModel() {
 export type DriverModel=ReturnType<typeof createDriverModel>;
 export function poseDriver(model:DriverModel,pose:DriverPose,clock:number) {
   const gait=Math.sin(clock*10)*.55*pose.walking;
+  // Lower the hip with the torso. Bend both leg segments enough to keep the
+  // feet at their original height instead of leaving thighs above the waist.
+  const crouchBend=Math.acos(Math.max(-1,Math.min(1,1-pose.crouch/(.27+.26))));
   model.torso.position.y=-.26*pose.seated-pose.crouch;
   for(let i=0;i<2;i++){
     const side=i===0?-1:1;
-    model.legs[i].position.y=.60-.26*pose.seated-pose.crouch*.42;
-    model.legs[i].rotation.x=-pose.seated*Math.PI/2-pose.crouch/.16*.35+gait*side*.55;
-    model.knees[i].rotation.x=pose.seated*Math.PI/2+pose.crouch/.16*.70+Math.max(0,-gait*side)*.4;
+    model.legs[i].position.y=.60-.26*pose.seated-pose.crouch;
+    model.legs[i].rotation.x=-pose.seated*Math.PI/2-crouchBend+gait*side*.55;
+    model.knees[i].rotation.x=pose.seated*Math.PI/2+2*crouchBend+Math.max(0,-gait*side)*.4;
     model.ankles[i].rotation.x=-(model.legs[i].rotation.x+model.knees[i].rotation.x);
     model.arms[i].position.set(side*(.255-.057*pose.grip),.99-.26*pose.seated-pose.crouch,0);
     const reach=pose.operate*(i===1?1:.55)+pose.seated*.65;

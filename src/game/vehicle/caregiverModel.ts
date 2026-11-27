@@ -14,7 +14,8 @@ export function createCaregiverModel(){
   const body=batch((box,ball,tube,add)=>{
     add(tailoredCharacterGeometry([[.625,.19,.137],[.68,.19,.142],[.77,.183,.137],[.88,.195,.144],
       [.97,.208,.145],[1.015,.207,.126],[1.045,.15,.10],[1.055,.075,.068]]),blue);
-    box([0,.60,0],[.42,.08,.30],navy);
+    add(tailoredCharacterGeometry([[.45,.05,.043],[.47,.127,.087],[.505,.177,.117],[.545,.188,.132],[.585,.189,.137],[.625,.187,.137]],true),navy);
+    add(tailoredCharacterGeometry([[.607,.188,.138],[.612,.192,.142],[.63,.192,.142],[.635,.189,.139]]),navy);
     for(const side of [-1,1])ball([side*.073,1.025,.135],.065,blue,[1,.6,.4]);
     addCharacterFace(add,[0,1.27,.015],[.238,.238,.224],skin);
     ball([0,1.34,-.065],.24,hair,[1,1,.88]);
@@ -42,16 +43,17 @@ export function createCaregiverModel(){
     box([0,.765,.18],[.105,.115,.022],'#fff8ef');ball([0,.79,.197],.020,'#7099c2');box([0,.748,.197],[.055,.026,.009],'#7099c2');
     ball([-.125,.92,.157],.049,'#8fbf60',[1,1,.23]);ball([-.125,.92,.171],.025,'#fff8e8',[1,1,.2]);ball([-.125,.92,.18],.014,'#d95b6b');
     // Apron pockets, pink edging, tools and back waist tie.
-    box([0,.59,.17],[.49,.29,.07],pink);box([0,.61,.21],[.43,.24,.025],navy);
-    for(const side of [-1,1]){box([side*.12,.58,.23],[.18,.15,.025],navy);box([side*.12,.66,.248],[.19,.025,.02],pink);}
+    box([0,.59,.17],[.43,.29,.07],pink);box([0,.61,.21],[.39,.24,.025],navy);
+    for(const side of [-1,1]){box([side*.105,.58,.23],[.16,.15,.025],navy);box([side*.105,.66,.248],[.17,.025,.02],pink);}
     for(let i=0;i<3;i++)box([-.17+i*.04,.75,.23],[.023,.14,.025],['#f1d46a','#83c5d4',pink][i]);
     box([.17,.73,.23],[.065,.10,.055],'#fff6ed');box([.17,.79,.23],[.075,.016,.06],pink);
-    box([0,.65,-.17],[.43,.045,.025],pink);ball([-.055,.65,-.195],.06,pink,[1,.5,.3]);ball([.055,.65,-.195],.06,pink,[1,.5,.3]);
+    add(tailoredCharacterGeometry([[.638,.19,.142],[.642,.194,.146],[.654,.194,.146],[.658,.19,.142]]),pink);
+    ball([-.03,.649,-.15],.033,pink,[1,.4,.2]);ball([.03,.649,-.15],.033,pink,[1,.4,.2]);
     // Collar, stitched apron pockets, badge clip and pen tips.
     for(const side of [-1,1]){
       box([side*.085,1.014,.154],[.08,.012,.014],'#b4d8ee');
-      box([side*.12,.514,.246],[.16,.006,.006],'#9c9bb3');
-      box([side*.197,.58,.246],[.006,.13,.006],'#9c9bb3');
+      box([side*.105,.514,.246],[.14,.006,.006],'#9c9bb3');
+      box([side*.177,.58,.246],[.006,.13,.006],'#9c9bb3');
     }
     box([0,.824,.195],[.028,.025,.012],'#b7c4ca');
     for(let i=0;i<3;i++)ball([-.17+i*.04,.822,.23],.009,['#e7bb45','#529cae','#c87599'][i]);
@@ -74,8 +76,8 @@ export function createCaregiverModel(){
   arms.position.y=.99;arms.name='caregiver-pushing-arms';root.add(arms);
   const legs:THREE.Group[]=[],knees:THREE.Group[]=[];
   for(const side of [-1,1]){
-    const leg=new THREE.Group();leg.position.set(side*.12,.59,0);leg.name=side===1?'caregiver-leg-right':'caregiver-leg-left';
-    leg.add(batch((_box,_ball,_tube,add)=>{add(tailoredCharacterGeometry([[-.25,.077,.089],[-.19,.081,.095],[-.08,.085,.10],[0,.083,.099]]),navy);}));
+    const leg=new THREE.Group();leg.position.set(side*.10,.59,0);leg.name=side===1?'caregiver-leg-right':'caregiver-leg-left';
+    leg.add(batch((_box,_ball,_tube,add)=>{add(tailoredCharacterGeometry([[-.25,.077,.089],[-.19,.081,.095],[-.08,.085,.10],[0,.083,.099]],'top'),navy);}));
     const knee=new THREE.Group();knee.position.y=-.25;leg.add(knee);knees.push(knee);
     knee.add(batch((box,ball,_tube,add)=>{add(tailoredCharacterGeometry([[-.25,.073,.085],[-.18,.078,.09],[-.08,.083,.098],[0,.078,.091]]),navy);
       ball([0,0,0],.078,navy,[1,1.05,1.16]);

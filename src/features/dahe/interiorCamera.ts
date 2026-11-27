@@ -1,4 +1,4 @@
-import type { Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { MouseOrbit } from '../../game/camera/MouseOrbit.ts';
 
 export const INTERIOR_AIM_HEIGHT = 1.15;
@@ -12,11 +12,16 @@ export function cameraRelativeMovement(dx: number, dz: number, yaw: number) {
 // A fixed target heading keeps looking around independent from grandma's turns.
 export function bindInteriorOrbit(canvas: HTMLCanvasElement, orbit: MouseOrbit, view: () => { position: Vector3; x: number; z: number }, enabled: () => boolean) {
   const pointers = new Map<number, { x: number; y: number }>();
+  const continuation = new Vector3();
   let pinch = 0;
   const distance = () => { const [a, b] = [...pointers.values()]; return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0; };
-  const begin = (point: { x: number; y: number }) => {
+  const begin = (point: { x: number; y: number }, preserveView = false) => {
     const current = view();
-    orbit.begin(current.position, { x: current.x, z: current.z, angle: 0, speed: 0 }, INTERIOR_AIM_HEIGHT, point.x, point.y);
+    const target = { x: current.x, z: current.z, angle: 0, speed: 0 };
+    // Lifting one pinch finger resumes a drag. Keep the requested orbit rather
+    // than sampling the still-damping (or collision-shortened) camera position.
+    if (preserveView && orbit.active) orbit.apply(continuation, target, INTERIOR_AIM_HEIGHT);
+    orbit.begin(preserveView && orbit.active ? continuation : current.position, target, INTERIOR_AIM_HEIGHT, point.x, point.y);
     limitDistance(orbit);
   };
   const zoom = (delta: number) => {
@@ -49,7 +54,7 @@ export function bindInteriorOrbit(canvas: HTMLCanvasElement, orbit: MouseOrbit, 
   const up = (event: PointerEvent) => {
     if (!pointers.delete(event.pointerId)) return;
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-    if (pointers.size === 1 && enabled()) { pinch = 0; begin([...pointers.values()][0]); }
+    if (pointers.size === 1 && enabled()) { pinch = 0; begin([...pointers.values()][0], true); }
     else if (!pointers.size) release();
   };
   const cancel = (event: PointerEvent) => { if (pointers.has(event.pointerId)) release(); };
